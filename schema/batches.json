@@ -1,0 +1,730 @@
+{
+  "id": "tblsv7z4tEvxYy3Zts1",
+  "name": "Партии",
+  "description": null,
+  "dbTableName": "bseNgKMy9d3MkxwlAjk.tblsv7z4tEvxYy3Zts1",
+  "fields": [
+    {
+      "id": "fld8ozm0K8RENhFBUVw",
+      "name": "Партия",
+      "dbFieldName": "Partiya",
+      "type": "formula",
+      "description": null,
+      "options": {
+        "expression": "{fldPDlsOEMEVPQQIHDU} & IF({fldFNC1zUZ5VT7PFepM}, ' · ' & {fldFNC1zUZ5VT7PFepM}, '')",
+        "timeZone": "utc"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldmZXubrc9d7XwqFrZ",
+      "name": "Страна",
+      "dbFieldName": "Strana",
+      "type": "singleSelect",
+      "description": null,
+      "options": [
+        "Китай",
+        "РФ"
+      ],
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldalYDLHyqcMLKbJKk",
+      "name": "Импортёр",
+      "dbFieldName": "Importyor",
+      "type": "singleSelect",
+      "description": null,
+      "options": [
+        "ОсОО «Эксперт компани»",
+        "Фудторг",
+        "Бонвивант",
+        "ИП Мырзабеков"
+      ],
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldBYlZgmIRRqzKbhnr",
+      "name": "Статус",
+      "dbFieldName": "Status",
+      "type": "singleSelect",
+      "description": null,
+      "options": [
+        "Предоплата",
+        "В пути",
+        "На таможне",
+        "На складе",
+        "Продана"
+      ],
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldh9qioM2iKFiAuLKE",
+      "name": "Номер фуры",
+      "dbFieldName": "Nomer_fury",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldKuPERFgXjtn67Ooe",
+      "name": "Дата предоплаты",
+      "dbFieldName": "Data_predoplaty",
+      "type": "date",
+      "description": null,
+      "options": {
+        "formatting": {
+          "date": "DD.MM.YYYY",
+          "time": "None",
+          "timeZone": "Asia/Bishkek"
+        }
+      },
+      "cellValueType": "dateTime",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldKlYaN9sxvE7EpYd5",
+      "name": "Дата прибытия",
+      "dbFieldName": "Data_pribytiya",
+      "type": "date",
+      "description": null,
+      "options": {
+        "formatting": {
+          "date": "DD.MM.YYYY",
+          "time": "None",
+          "timeZone": "Asia/Bishkek"
+        }
+      },
+      "cellValueType": "dateTime",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldS6YUGQkbWY1g5jYt",
+      "name": "Кг",
+      "dbFieldName": "Kg",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldRdvuqCIOCwrubEiG",
+      "name": "Цена $/кг",
+      "dbFieldName": "Cena_kg",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldumsxJovB2GFvdjKQ",
+      "name": "Предоплата $",
+      "dbFieldName": "Predoplata",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld6nXbYiztchUp843e",
+      "name": "Курс предоплаты",
+      "dbFieldName": "Kurs_predoplaty",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld6F7utpXXBEBmMzlk",
+      "name": "Постоплата $",
+      "dbFieldName": "Postoplata",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldTo53LCw79OtEKK1L",
+      "name": "Курс постоплаты",
+      "dbFieldName": "Kurs_postoplaty",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldlRs5pftnHsmKf5VA",
+      "name": "Цена ₽/кг",
+      "dbFieldName": "Cena_kg_2",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld6QHpCOH5PKza6dr0",
+      "name": "Курс ₽→сом",
+      "dbFieldName": "Kurs_som",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 4
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld9k9EJcVX1nGx02zg",
+      "name": "Комиссия за перевод",
+      "dbFieldName": "Komissiya_za_perevod",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldgShV2jwZLL4cq51W",
+      "name": "Банковские расходы",
+      "dbFieldName": "Bankovskie_rashody",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldcrrIjvjMiaVVTtcZ",
+      "name": "Таможенная пошлина",
+      "dbFieldName": "Tamozhennaya_poshlina",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldLVzdsNcZGLativFb",
+      "name": "НДС и НсП",
+      "dbFieldName": "NDS_i_NsP",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld2jUtolX7OcttnIaq",
+      "name": "Прочие по таможне",
+      "dbFieldName": "Prochie_po_tamozhne",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldCrzm7ZTyF4qlKRiB",
+      "name": "Выгрузка / логистика",
+      "dbFieldName": "Vygruzka_logistika",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldIhfGS8qzFy5cFksp",
+      "name": "Цена продажи сом/кг",
+      "dbFieldName": "Cena_prodazhi_som_kg",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldHeoGhyp58GxYodko",
+      "name": "Курс $ для отчёта",
+      "dbFieldName": "Kurs_dlya_otchyota",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld0yXkeOaQ9J2cMmxs",
+      "name": "Комментарий",
+      "dbFieldName": "Kommentariy",
+      "type": "longText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldPDlsOEMEVPQQIHDU",
+      "name": "Номер партии",
+      "dbFieldName": "Nomer_partii",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldFNC1zUZ5VT7PFepM",
+      "name": "Товар",
+      "dbFieldName": "Tovar",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "manyOne",
+        "foreignTableId": "tbldSXhogjtsljJr8fJ",
+        "lookupFieldId": "fldgwEF1Kc3Ye6y0Ncx",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblsv7z4tEvxYy3Zts1",
+        "selfKeyName": "__id",
+        "foreignKeyName": "__fk_fldFNC1zUZ5VT7PFepM",
+        "symmetricFieldId": "fld4MzFqk36THJLYvfA"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldJUjFdWuyA7s1KOLE",
+      "name": "Поставщик",
+      "dbFieldName": "Postavshchik",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "manyOne",
+        "foreignTableId": "tblxrCa3oK3bqkCZGbH",
+        "lookupFieldId": "fld4a8gsR09nAxVxxnf",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblsv7z4tEvxYy3Zts1",
+        "selfKeyName": "__id",
+        "foreignKeyName": "__fk_fldJUjFdWuyA7s1KOLE",
+        "symmetricFieldId": "fld5grYYMhzMSJU0VIV"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldyudluMyFqwwKBfXM",
+      "name": "Движения склада",
+      "dbFieldName": "Dvizheniya_sklada",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "oneMany",
+        "foreignTableId": "tblOM0LG7B3VlWFBqsq",
+        "lookupFieldId": "fldjGZoW3oTWluqg8VR",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblOM0LG7B3VlWFBqsq",
+        "selfKeyName": "__fk_fld1IAm8t5H2fBvwhrI",
+        "foreignKeyName": "__id",
+        "symmetricFieldId": "fld1IAm8t5H2fBvwhrI"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": true
+    },
+    {
+      "id": "fldJxpSQMv9cJE0OziP",
+      "name": "Платежи",
+      "dbFieldName": "Platezhi",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "oneMany",
+        "foreignTableId": "tbl8AoZg8hkOqMBar6d",
+        "lookupFieldId": "fldEdCoWH6jjXVy98KO",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tbl8AoZg8hkOqMBar6d",
+        "selfKeyName": "__fk_fldzBPzKmOadmcJ2Onl",
+        "foreignKeyName": "__id",
+        "symmetricFieldId": "fldzBPzKmOadmcJ2Onl"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": true
+    },
+    {
+      "id": "fldUrkoFuCL5K41kiH1",
+      "name": "Стоимость товара, $",
+      "dbFieldName": "Stoimost_tovara",
+      "type": "formula",
+      "description": null,
+      "options": {
+        "expression": "{fldS6YUGQkbWY1g5jYt}*{fldRdvuqCIOCwrubEiG}",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldKJJgoQWeDof49Zdm",
+      "name": "Оплачено поставщику, сом",
+      "dbFieldName": "Oplacheno_postavshchiku_som",
+      "type": "formula",
+      "description": "Предоплата $ × курс + постоплата $ × курс (Китай) или цена ₽ × курс × кг (РФ)",
+      "options": {
+        "expression": "{fldumsxJovB2GFvdjKQ}*{fld6nXbYiztchUp843e}+{fld6F7utpXXBEBmMzlk}*{fldTo53LCw79OtEKK1L}+{fldlRs5pftnHsmKf5VA}*{fld6QHpCOH5PKza6dr0}*{fldS6YUGQkbWY1g5jYt}",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld6Q1BL4OzohOONmq6",
+      "name": "Долг поставщику, $",
+      "dbFieldName": "Dolg_postavshchiku",
+      "type": "formula",
+      "description": "Сколько ещё доплатить Китаю",
+      "options": {
+        "expression": "IF({fldmZXubrc9d7XwqFrZ}='Китай', {fldUrkoFuCL5K41kiH1}-{fldumsxJovB2GFvdjKQ}-{fld6F7utpXXBEBmMzlk}, 0)",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldxE2AMYfuHab4zup4",
+      "name": "Себестоимость итого, сом",
+      "dbFieldName": "Sebestoimost_itogo_som",
+      "type": "formula",
+      "description": "Оплата поставщику + комиссия + банк + пошлина + НДС/НсП + прочие + выгрузка/логистика",
+      "options": {
+        "expression": "{fldKJJgoQWeDof49Zdm}+{fld9k9EJcVX1nGx02zg}+{fldgShV2jwZLL4cq51W}+{fldcrrIjvjMiaVVTtcZ}+{fldLVzdsNcZGLativFb}+{fld2jUtolX7OcttnIaq}+{fldCrzm7ZTyF4qlKRiB}",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldwf3FHQSmlsQghu7Z",
+      "name": "Себестоимость 1 кг, сом",
+      "dbFieldName": "Sebestoimost_1_kg_som",
+      "type": "formula",
+      "description": null,
+      "options": {
+        "expression": "IF({fldS6YUGQkbWY1g5jYt}>0, {fldxE2AMYfuHab4zup4}/{fldS6YUGQkbWY1g5jYt}, 0)",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldJAje6OcbSJLuTFkc",
+      "name": "Выручка, сом",
+      "dbFieldName": "Vyruchka_som",
+      "type": "formula",
+      "description": "Кг × цена продажи",
+      "options": {
+        "expression": "{fldS6YUGQkbWY1g5jYt}*{fldIhfGS8qzFy5cFksp}",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldSZnL5f9b4ZHO27M7",
+      "name": "Прибыль, сом",
+      "dbFieldName": "Pribyl_som",
+      "type": "formula",
+      "description": null,
+      "options": {
+        "expression": "{fldJAje6OcbSJLuTFkc}-{fldxE2AMYfuHab4zup4}",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldra1qynKgLELB1OmG",
+      "name": "Прибыль, $",
+      "dbFieldName": "Pribyl",
+      "type": "formula",
+      "description": null,
+      "options": {
+        "expression": "IF({fldHeoGhyp58GxYodko}>0, {fldSZnL5f9b4ZHO27M7}/{fldHeoGhyp58GxYodko}, 0)",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldSabAjslbvhqJGu17",
+      "name": "Маржа, %",
+      "dbFieldName": "Marzha",
+      "type": "formula",
+      "description": null,
+      "options": {
+        "expression": "IF({fldJAje6OcbSJLuTFkc}>0, {fldSZnL5f9b4ZHO27M7}/{fldJAje6OcbSJLuTFkc}*100, 0)",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 1
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldPnwVVhSpeWC4Grqz",
+      "name": "Аванс поставщику (в пути), сом",
+      "dbFieldName": "Avans_postavshchiku_v_puti_som",
+      "type": "formula",
+      "description": "Оплачено поставщику по партиям, которые ещё не пришли (Предоплата / В пути / На таможне). Как «отправлено денег» в листе «Китай».",
+      "options": {
+        "expression": "IF(OR({fldBYlZgmIRRqzKbhnr}='Предоплата',{fldBYlZgmIRRqzKbhnr}='В пути',{fldBYlZgmIRRqzKbhnr}='На таможне'), {fldKJJgoQWeDof49Zdm}, 0)",
+        "timeZone": "utc",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldXkMD4YktEbfMYu6M",
+      "name": "Дата постоплаты",
+      "dbFieldName": "Data_postoplaty",
+      "type": "date",
+      "description": null,
+      "options": {
+        "formatting": {
+          "date": "DD.MM.YYYY",
+          "time": "None",
+          "timeZone": "Asia/Bishkek"
+        }
+      },
+      "cellValueType": "dateTime",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldKRc20uxgDGkdHtSZ",
+      "name": "Заявки",
+      "dbFieldName": "Zayavki",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "oneMany",
+        "foreignTableId": "tblcHeiF0KQSRnOgdJb",
+        "lookupFieldId": "fldS2Mt9XZbbb0EHxVc",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblcHeiF0KQSRnOgdJb",
+        "selfKeyName": "__fk_fldVdaJdpzftoCHj6Iu",
+        "foreignKeyName": "__id",
+        "symmetricFieldId": "fldVdaJdpzftoCHj6Iu"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": true
+    }
+  ]
+}

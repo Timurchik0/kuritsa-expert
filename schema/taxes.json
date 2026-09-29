@@ -1,0 +1,118 @@
+{
+  "id": "tblAjynPGN6BJwEamT5",
+  "name": "Налоги",
+  "description": null,
+  "dbTableName": "bseNgKMy9d3MkxwlAjk.tblAjynPGN6BJwEamT5",
+  "fields": [
+    {
+      "id": "fldSMfoKeuINUbNeli2",
+      "name": "Основание",
+      "dbFieldName": "Osnovanie",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldsfRKRbnvpOpo1VaJ",
+      "name": "Дата",
+      "dbFieldName": "Data",
+      "type": "date",
+      "description": null,
+      "options": {
+        "formatting": {
+          "date": "DD.MM.YYYY",
+          "time": "None",
+          "timeZone": "Asia/Bishkek"
+        }
+      },
+      "cellValueType": "dateTime",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldjR9TBgl5KkxsPyVs",
+      "name": "Начислено, сом",
+      "dbFieldName": "Nachisleno_som",
+      "type": "number",
+      "description": "Внутренний НДС/НсП к уплате по партии (лист «Расходы», колонка «Расход на»). Для Китая ≈ 4% × выручка партии",
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldNa9ElhXoY1HOPsJb",
+      "name": "Оплачено, сом",
+      "dbFieldName": "Oplacheno_som",
+      "type": "number",
+      "description": "Фактически уплачено (колонка «сумма выплат»)",
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld8kIygpjOCZV5MKhZ",
+      "name": "Комментарий",
+      "dbFieldName": "Kommentariy",
+      "type": "longText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldygUqQMFg5g8wMWgD",
+      "name": "Остаток к уплате, сом",
+      "dbFieldName": "Ostatok_k_uplate_som",
+      "type": "formula",
+      "description": "Начислено − Оплачено",
+      "options": {
+        "expression": "{fldjR9TBgl5KkxsPyVs}-{fldNa9ElhXoY1HOPsJb}",
+        "timeZone": "utc",
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldkjrs1G9tFFou4vOT",
+      "name": "Направление",
+      "dbFieldName": "Napravlenie",
+      "type": "formula",
+      "description": null,
+      "options": {
+        "expression": "IF(FIND('рф', LOWER({fldSMfoKeuINUbNeli2})), 'РФ', 'Китай')",
+        "timeZone": "utc"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    }
+  ]
+}

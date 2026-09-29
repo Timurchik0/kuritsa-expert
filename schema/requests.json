@@ -1,0 +1,137 @@
+{
+  "id": "tblcHeiF0KQSRnOgdJb",
+  "name": "Заявки",
+  "description": null,
+  "dbTableName": "bseNgKMy9d3MkxwlAjk.tblcHeiF0KQSRnOgdJb",
+  "fields": [
+    {
+      "id": "fldS2Mt9XZbbb0EHxVc",
+      "name": "Заявка",
+      "dbFieldName": "Zayavka",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldEOnvd3NdWc5qTbe8",
+      "name": "Дата",
+      "dbFieldName": "Data",
+      "type": "date",
+      "description": null,
+      "options": {
+        "formatting": {
+          "date": "DD.MM.YYYY",
+          "time": "None",
+          "timeZone": "Asia/Bishkek"
+        }
+      },
+      "cellValueType": "dateTime",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldMZXm9G06OU6OoVms",
+      "name": "Объём, кг",
+      "dbFieldName": "Obyom_kg",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld3N02UMFzaG4NtwKS",
+      "name": "Номер машины",
+      "dbFieldName": "Nomer_mashiny",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldrbv7T08Hk4XJM83M",
+      "name": "Статус",
+      "dbFieldName": "Status",
+      "type": "singleSelect",
+      "description": null,
+      "options": [
+        "Открыта",
+        "Исполнена",
+        "Отменена"
+      ],
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldutrXHfgndoRxOniQ",
+      "name": "Комментарий",
+      "dbFieldName": "Kommentariy",
+      "type": "longText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldGQyStPMjsNmhnT2o",
+      "name": "Лицензия",
+      "dbFieldName": "Licenziya",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "manyOne",
+        "foreignTableId": "tbleXAnjiRfOof7fT2s",
+        "lookupFieldId": "fldPas8o34uNhcUzc7o",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblcHeiF0KQSRnOgdJb",
+        "selfKeyName": "__id",
+        "foreignKeyName": "__fk_fldGQyStPMjsNmhnT2o",
+        "symmetricFieldId": "fldcH1SN3fUxmVSg7zC"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldVdaJdpzftoCHj6Iu",
+      "name": "Партия",
+      "dbFieldName": "Partiya",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "manyOne",
+        "foreignTableId": "tblsv7z4tEvxYy3Zts1",
+        "lookupFieldId": "fld8ozm0K8RENhFBUVw",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblcHeiF0KQSRnOgdJb",
+        "selfKeyName": "__id",
+        "foreignKeyName": "__fk_fldVdaJdpzftoCHj6Iu",
+        "symmetricFieldId": "fldKRc20uxgDGkdHtSZ"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    }
+  ]
+}

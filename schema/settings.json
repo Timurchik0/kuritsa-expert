@@ -1,0 +1,49 @@
+{
+  "id": "tblkZ9qHSXHXHp1hnnD",
+  "name": "Настройки",
+  "description": null,
+  "dbTableName": "bseNgKMy9d3MkxwlAjk.tblkZ9qHSXHXHp1hnnD",
+  "fields": [
+    {
+      "id": "fld1YjVoJw5568bpqdf",
+      "name": "Параметр",
+      "dbFieldName": "Parametr",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldDKVUlmuunFrC94Hy",
+      "name": "Значение",
+      "dbFieldName": "Znachenie",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 4
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldMyjjOxq7Q8M3WUS5",
+      "name": "Где используется",
+      "dbFieldName": "Gde_ispolzuetsya",
+      "type": "longText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    }
+  ]
+}

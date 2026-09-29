@@ -1,0 +1,211 @@
+{
+  "id": "tbldSXhogjtsljJr8fJ",
+  "name": "Товары",
+  "description": null,
+  "dbTableName": "bseNgKMy9d3MkxwlAjk.tbldSXhogjtsljJr8fJ",
+  "fields": [
+    {
+      "id": "fldgwEF1Kc3Ye6y0Ncx",
+      "name": "Название",
+      "dbFieldName": "Nazvanie",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldKD9QOHgpcqDexGOY",
+      "name": "Категория",
+      "dbFieldName": "Kategoriya",
+      "type": "singleSelect",
+      "description": null,
+      "options": [
+        "Курица",
+        "Утка",
+        "Прочее"
+      ],
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldi8ZDnbM4KHzjC9Mu",
+      "name": "Кг в коробке",
+      "dbFieldName": "Kg_v_korobke",
+      "type": "number",
+      "description": "Вес коробки для пересчёта коробки ↔ кг (как на складских листах: кор × 12 и т.п.)",
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 1
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld4MzFqk36THJLYvfA",
+      "name": "Партии",
+      "dbFieldName": "Partii",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "oneMany",
+        "foreignTableId": "tblsv7z4tEvxYy3Zts1",
+        "lookupFieldId": "fld8ozm0K8RENhFBUVw",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblsv7z4tEvxYy3Zts1",
+        "selfKeyName": "__fk_fldFNC1zUZ5VT7PFepM",
+        "foreignKeyName": "__id",
+        "symmetricFieldId": "fldFNC1zUZ5VT7PFepM"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": true
+    },
+    {
+      "id": "fld5z1HTEMJWkT2oHt0",
+      "name": "Движения склада",
+      "dbFieldName": "Dvizheniya_sklada",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "oneMany",
+        "foreignTableId": "tblOM0LG7B3VlWFBqsq",
+        "lookupFieldId": "fldjGZoW3oTWluqg8VR",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblOM0LG7B3VlWFBqsq",
+        "selfKeyName": "__fk_fldvgIisnBRFBbs7MbF",
+        "foreignKeyName": "__id",
+        "symmetricFieldId": "fldvgIisnBRFBbs7MbF"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": true
+    },
+    {
+      "id": "fldtSNpw2ZRijKc5Tkm",
+      "name": "Остаток, кг",
+      "dbFieldName": "Ostatok_kg",
+      "type": "rollup",
+      "description": null,
+      "options": {
+        "expression": "sum({values})",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldwNLXuIzKKf21frYW",
+      "name": "Остаток, коробок",
+      "dbFieldName": "Ostatok_korobok",
+      "type": "rollup",
+      "description": null,
+      "options": {
+        "expression": "sum({values})",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldA93b2nRYlUFZMJPL",
+      "name": "Склад по плановой цене, сом",
+      "dbFieldName": "Sklad_po_sebestoimosti_som",
+      "type": "rollup",
+      "description": null,
+      "options": {
+        "expression": "sum({values})",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldxL4zABgDYTzrZhDr",
+      "name": "Средняя плановая цена, сом/кг",
+      "dbFieldName": "Srednyaya_sebestoimost_som_kg",
+      "type": "formula",
+      "description": "Склад по плановой цене ÷ остаток кг",
+      "options": {
+        "expression": "IF({fldtSNpw2ZRijKc5Tkm}>0, {fldA93b2nRYlUFZMJPL}/{fldtSNpw2ZRijKc5Tkm}, 0)",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldlQghUZRZekKmwr2x",
+      "name": "Стоимость остатка, сом",
+      "dbFieldName": "Stoimost_ostatka_som",
+      "type": "formula",
+      "description": "Остаток по плановой цене продажи: Σ(±кг × плановая цена). Как D2 складских листов Excel. Минус = отгрузок внесено больше, чем приходов",
+      "options": {
+        "expression": "{fldA93b2nRYlUFZMJPL}",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldqXYIIUq8jm8pOXwY",
+      "name": "Квоты",
+      "dbFieldName": "Kvoty",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "oneMany",
+        "foreignTableId": "tblWBOkOTD4TSqEZJn5",
+        "lookupFieldId": "fldQ3RQACPlgonsyqQH",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblWBOkOTD4TSqEZJn5",
+        "selfKeyName": "__fk_fldpLbuOOM6svP1MUWC",
+        "foreignKeyName": "__id",
+        "symmetricFieldId": "fldpLbuOOM6svP1MUWC"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": true
+    }
+  ]
+}

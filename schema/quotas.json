@@ -1,0 +1,216 @@
+{
+  "id": "tblWBOkOTD4TSqEZJn5",
+  "name": "Квоты",
+  "description": null,
+  "dbTableName": "bseNgKMy9d3MkxwlAjk.tblWBOkOTD4TSqEZJn5",
+  "fields": [
+    {
+      "id": "fldQ3RQACPlgonsyqQH",
+      "name": "Квота",
+      "dbFieldName": "Kvota",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldjfEStpZClJn5dFvU",
+      "name": "Период",
+      "dbFieldName": "Period",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldXli09IQ9x4msZOBD",
+      "name": "Дата",
+      "dbFieldName": "Data",
+      "type": "date",
+      "description": null,
+      "options": {
+        "formatting": {
+          "date": "DD.MM.YYYY",
+          "time": "None",
+          "timeZone": "Asia/Bishkek"
+        }
+      },
+      "cellValueType": "dateTime",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldT5vUfYUwlBmU5Rm8",
+      "name": "Объём, кг",
+      "dbFieldName": "Obyom_kg",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldy3MgnxFwGcW1qz6m",
+      "name": "Комментарий",
+      "dbFieldName": "Kommentariy",
+      "type": "longText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldQ5xUw612Wwkn0su1",
+      "name": "Юрлицо",
+      "dbFieldName": "Yurlico",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "manyOne",
+        "foreignTableId": "tblIyD18B0ixUMb2Ybz",
+        "lookupFieldId": "fldQgUCzfZmylCt3EHw",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblWBOkOTD4TSqEZJn5",
+        "selfKeyName": "__id",
+        "foreignKeyName": "__fk_fldQ5xUw612Wwkn0su1",
+        "symmetricFieldId": "fldF8P6QL2J5kqbsV26"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldpLbuOOM6svP1MUWC",
+      "name": "Товар",
+      "dbFieldName": "Tovar",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "manyOne",
+        "foreignTableId": "tbldSXhogjtsljJr8fJ",
+        "lookupFieldId": "fldgwEF1Kc3Ye6y0Ncx",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblWBOkOTD4TSqEZJn5",
+        "selfKeyName": "__id",
+        "foreignKeyName": "__fk_fldpLbuOOM6svP1MUWC",
+        "symmetricFieldId": "fldqXYIIUq8jm8pOXwY"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldNIsmftU06H4SuVZd",
+      "name": "Лицензии",
+      "dbFieldName": "Licenzii",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "oneMany",
+        "foreignTableId": "tbleXAnjiRfOof7fT2s",
+        "lookupFieldId": "fldPas8o34uNhcUzc7o",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tbleXAnjiRfOof7fT2s",
+        "selfKeyName": "__fk_fldlCmYS0lWzPGf46qL",
+        "foreignKeyName": "__id",
+        "symmetricFieldId": "fldlCmYS0lWzPGf46qL"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": true
+    },
+    {
+      "id": "fldbxkWdCjkuZjFWfJd",
+      "name": "В лицензиях, кг",
+      "dbFieldName": "V_licenziyah_kg",
+      "type": "rollup",
+      "description": "Σ объёмов лицензий квоты",
+      "options": {
+        "expression": "sum({values})",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldhaRE1DeGfMeUh3NO",
+      "name": "Заявлено, кг",
+      "dbFieldName": "Zayavleno_kg",
+      "type": "rollup",
+      "description": "Σ заявок по всем лицензиям квоты",
+      "options": {
+        "expression": "sum({values})",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld2c221Uf1d4G0UTYy",
+      "name": "Не распределено по лицензиям, кг",
+      "dbFieldName": "Ne_raspredeleno_po_licenziyam_kg",
+      "type": "formula",
+      "description": "Объём квоты − Σ лицензий",
+      "options": {
+        "expression": "{fldT5vUfYUwlBmU5Rm8}-{fldbxkWdCjkuZjFWfJd}",
+        "timeZone": "utc",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldRlymEXcYZKOcD4JI",
+      "name": "Остаток по заявкам, кг",
+      "dbFieldName": "Ostatok_po_zayavkam_kg",
+      "type": "formula",
+      "description": "Объём квоты − Σ заявок",
+      "options": {
+        "expression": "{fldT5vUfYUwlBmU5Rm8}-{fldhaRE1DeGfMeUh3NO}",
+        "timeZone": "utc",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    }
+  ]
+}

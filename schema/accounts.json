@@ -1,0 +1,156 @@
+{
+  "id": "tbl2f7201QsDT4xfzSP",
+  "name": "Счета",
+  "description": null,
+  "dbTableName": "bseNgKMy9d3MkxwlAjk.tbl2f7201QsDT4xfzSP",
+  "fields": [
+    {
+      "id": "fldOpYHESNnreDbMlPg",
+      "name": "Название",
+      "dbFieldName": "Nazvanie",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldEED1ukBe9op1vaz7",
+      "name": "Юрлицо",
+      "dbFieldName": "Yurlico",
+      "type": "singleSelect",
+      "description": null,
+      "options": [
+        "ОсОО «Эксперт компани»",
+        "ИП Мырзабеков",
+        "Фудторг",
+        "Бонвивант",
+        "Юни Трейд Компани",
+        "Фуд Бридж",
+        "ИП Наргиза",
+        "Наличные у сотрудников"
+      ],
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldnCoDmGsvQjsJCEOv",
+      "name": "Тип",
+      "dbFieldName": "Tip",
+      "type": "singleSelect",
+      "description": null,
+      "options": [
+        "Банк",
+        "Наличные"
+      ],
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld31CmmrFsiwQOuPcH",
+      "name": "Остаток на начало",
+      "dbFieldName": "Ostatok_na_nachalo",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld7DewLKrvVdySOOer",
+      "name": "Учитывать в сводке",
+      "dbFieldName": "Uchityvat_v_svodke",
+      "type": "checkbox",
+      "description": null,
+      "options": {},
+      "cellValueType": "boolean",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldHufnXSnnIhGg5ikc",
+      "name": "Комментарий",
+      "dbFieldName": "Kommentariy",
+      "type": "longText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldvIzei6apM7cXeZcf",
+      "name": "Платежи",
+      "dbFieldName": "Platezhi",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "oneMany",
+        "foreignTableId": "tbl8AoZg8hkOqMBar6d",
+        "lookupFieldId": "fldEdCoWH6jjXVy98KO",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tbl8AoZg8hkOqMBar6d",
+        "selfKeyName": "__fk_fldqxESuiWLVsrFhTTM",
+        "foreignKeyName": "__id",
+        "symmetricFieldId": "fldqxESuiWLVsrFhTTM"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": true
+    },
+    {
+      "id": "fldHvMxlw9neud4xh1C",
+      "name": "Оборот по счёту",
+      "dbFieldName": "Oborot_po_schyotu",
+      "type": "rollup",
+      "description": null,
+      "options": {
+        "expression": "sum({values})",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldUgv6XR8fCuLWsRKu",
+      "name": "Остаток",
+      "dbFieldName": "Ostatok",
+      "type": "formula",
+      "description": "Остаток на начало + приходы − расходы",
+      "options": {
+        "expression": "{fld31CmmrFsiwQOuPcH}+{fldHvMxlw9neud4xh1C}",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    }
+  ]
+}

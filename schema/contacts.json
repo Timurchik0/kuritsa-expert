@@ -1,0 +1,273 @@
+{
+  "id": "tblxrCa3oK3bqkCZGbH",
+  "name": "Контрагенты",
+  "description": null,
+  "dbTableName": "bseNgKMy9d3MkxwlAjk.tblxrCa3oK3bqkCZGbH",
+  "fields": [
+    {
+      "id": "fld4a8gsR09nAxVxxnf",
+      "name": "Название",
+      "dbFieldName": "Nazvanie",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldAY7ga6DFEHxoE7cc",
+      "name": "Тип",
+      "dbFieldName": "Tip",
+      "type": "singleSelect",
+      "description": null,
+      "options": [
+        "Клиент",
+        "Партнёр",
+        "Поставщик",
+        "Займодавец",
+        "Прочее",
+        "Заёмщик"
+      ],
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldY2r5Yhh5abvX0nOy",
+      "name": "Сальдо на начало",
+      "dbFieldName": "Saldo_na_nachalo",
+      "type": "number",
+      "description": "Долг на момент переноса из Excel: + должен нам, − мы должны",
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldpavJkGUJnf6wmCe1",
+      "name": "Телефон",
+      "dbFieldName": "Telefon",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld8xxREI5gDFz2uIIL",
+      "name": "Комментарий",
+      "dbFieldName": "Kommentariy",
+      "type": "longText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld5grYYMhzMSJU0VIV",
+      "name": "Партии",
+      "dbFieldName": "Partii",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "oneMany",
+        "foreignTableId": "tblsv7z4tEvxYy3Zts1",
+        "lookupFieldId": "fld8ozm0K8RENhFBUVw",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblsv7z4tEvxYy3Zts1",
+        "selfKeyName": "__fk_fldJUjFdWuyA7s1KOLE",
+        "foreignKeyName": "__id",
+        "symmetricFieldId": "fldJUjFdWuyA7s1KOLE"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": true
+    },
+    {
+      "id": "fldQCSmAeyQI1SiDZpQ",
+      "name": "Движения склада",
+      "dbFieldName": "Dvizheniya_sklada",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "oneMany",
+        "foreignTableId": "tblOM0LG7B3VlWFBqsq",
+        "lookupFieldId": "fldjGZoW3oTWluqg8VR",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblOM0LG7B3VlWFBqsq",
+        "selfKeyName": "__fk_fldkIBXaWyDc6CSYMxy",
+        "foreignKeyName": "__id",
+        "symmetricFieldId": "fldkIBXaWyDc6CSYMxy"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": true
+    },
+    {
+      "id": "fldWNshOPhbOXagY3mq",
+      "name": "Платежи",
+      "dbFieldName": "Platezhi",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "oneMany",
+        "foreignTableId": "tbl8AoZg8hkOqMBar6d",
+        "lookupFieldId": "fldEdCoWH6jjXVy98KO",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tbl8AoZg8hkOqMBar6d",
+        "selfKeyName": "__fk_fldnbVetgQIPn5oK6i0",
+        "foreignKeyName": "__id",
+        "symmetricFieldId": "fldnbVetgQIPn5oK6i0"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": true
+    },
+    {
+      "id": "fldH6O5W7iBk3paAPYu",
+      "name": "Последняя отгрузка",
+      "dbFieldName": "Poslednyaya_otgruzka",
+      "type": "rollup",
+      "description": null,
+      "options": {
+        "expression": "max({values})",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "date": "DD.MM.YYYY",
+          "time": "None",
+          "timeZone": "Asia/Bishkek"
+        }
+      },
+      "cellValueType": "dateTime",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldgBPQmgM8Ag0FWQv9",
+      "name": "Последний платёж",
+      "dbFieldName": "Posledniy_platyozh",
+      "type": "rollup",
+      "description": null,
+      "options": {
+        "expression": "max({values})",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "date": "DD.MM.YYYY",
+          "time": "None",
+          "timeZone": "Asia/Bishkek"
+        }
+      },
+      "cellValueType": "dateTime",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldp4Yc3Odhno2qhucx",
+      "name": "Отгрузки в долг",
+      "dbFieldName": "Otgruzki_v_dolg",
+      "type": "rollup",
+      "description": null,
+      "options": {
+        "expression": "sum({values})",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldeC3ylo7wJBOE706L",
+      "name": "Платежи в расчёт",
+      "dbFieldName": "Platezhi_v_raschyot",
+      "type": "rollup",
+      "description": null,
+      "options": {
+        "expression": "sum({values})",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldC1Nsw7Gzu5SN0svG",
+      "name": "Авансы за партии в пути",
+      "dbFieldName": "Avansy_za_partii_v_puti",
+      "type": "rollup",
+      "description": null,
+      "options": {
+        "expression": "sum({values})",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld6YBfko2QzNbdxJho",
+      "name": "Баланс",
+      "dbFieldName": "Balans",
+      "type": "formula",
+      "description": "Сальдо на начало + отгрузки в долг − оплаты (+ выданные ему деньги) + авансы за партии в пути. «+» — должен нам / наши деньги у него, «−» — мы должны.",
+      "options": {
+        "expression": "{fldY2r5Yhh5abvX0nOy}+{fldp4Yc3Odhno2qhucx}+{fldeC3ylo7wJBOE706L}+{fldC1Nsw7Gzu5SN0svG}",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldqF521RmvtOGTbiiz",
+      "name": "Статус расчётов",
+      "dbFieldName": "Status_raschyotov",
+      "type": "formula",
+      "description": null,
+      "options": {
+        "expression": "IF({fld6YBfko2QzNbdxJho}>1,'Должен нам',IF({fld6YBfko2QzNbdxJho}<-1,'Мы должны','Рассчитались'))",
+        "timeZone": "utc"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    }
+  ]
+}

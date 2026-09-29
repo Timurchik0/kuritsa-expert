@@ -1,0 +1,128 @@
+{
+  "id": "tblIyD18B0ixUMb2Ybz",
+  "name": "Юрлица",
+  "description": null,
+  "dbTableName": "bseNgKMy9d3MkxwlAjk.tblIyD18B0ixUMb2Ybz",
+  "fields": [
+    {
+      "id": "fldQgUCzfZmylCt3EHw",
+      "name": "Название",
+      "dbFieldName": "Nazvanie",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldOXJIUu3Wc21kPg1K",
+      "name": "Форма",
+      "dbFieldName": "Forma",
+      "type": "singleSelect",
+      "description": null,
+      "options": [
+        "ОсОО",
+        "ИП"
+      ],
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldb77veLOz8Dfo820D",
+      "name": "ИНН",
+      "dbFieldName": "INN",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "flduSkg4wgdkcHPcePb",
+      "name": "Руководитель",
+      "dbFieldName": "Rukovoditel",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldfCy67OrvC3m5DOGh",
+      "name": "Юридический адрес",
+      "dbFieldName": "Yuridicheskiy_adres",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldxkUnJgFD0MbFuTMu",
+      "name": "Склад",
+      "dbFieldName": "Sklad",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld0JamdQwaMWFp6IVX",
+      "name": "Разрешение ЕАЭС",
+      "dbFieldName": "Razreshenie_EAES",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldQKdHjwIXHIYGJk6a",
+      "name": "Комментарий",
+      "dbFieldName": "Kommentariy",
+      "type": "longText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldF8P6QL2J5kqbsV26",
+      "name": "Квоты",
+      "dbFieldName": "Kvoty",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "oneMany",
+        "foreignTableId": "tblWBOkOTD4TSqEZJn5",
+        "lookupFieldId": "fldQ3RQACPlgonsyqQH",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblWBOkOTD4TSqEZJn5",
+        "selfKeyName": "__fk_fldQ5xUw612Wwkn0su1",
+        "foreignKeyName": "__id",
+        "symmetricFieldId": "fldQ5xUw612Wwkn0su1"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": true
+    }
+  ]
+}

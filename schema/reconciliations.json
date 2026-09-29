@@ -1,0 +1,175 @@
+{
+  "id": "tblcZzavRf9CONp6vnh",
+  "name": "Сверки",
+  "description": null,
+  "dbTableName": "bseNgKMy9d3MkxwlAjk.tblcZzavRf9CONp6vnh",
+  "fields": [
+    {
+      "id": "fldP6kCUZa4gL0wmdLY",
+      "name": "Партии в своде",
+      "dbFieldName": "Partii_v_svode",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldQfYFBMOk9fbKwbKD",
+      "name": "Дата свода",
+      "dbFieldName": "Data_svoda",
+      "type": "date",
+      "description": null,
+      "options": {
+        "formatting": {
+          "date": "DD.MM.YYYY",
+          "time": "None",
+          "timeZone": "Asia/Bishkek"
+        }
+      },
+      "cellValueType": "dateTime",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld7BM8zcCoidI9QJvP",
+      "name": "Остаток на начало, $",
+      "dbFieldName": "Ostatok_na_nachalo",
+      "type": "number",
+      "description": "Фактический остаток прошлой сверки",
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldeXNXkEyhJNO1Fn7N",
+      "name": "Прибыль по партиям, $",
+      "dbFieldName": "Pribyl_po_partiyam",
+      "type": "number",
+      "description": "Прибыль партий, вошедших в свод",
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldhsxJSwedtW643H3N",
+      "name": "Факт остаток, $",
+      "dbFieldName": "Fakt_ostatok",
+      "type": "number",
+      "description": "Реальный остаток по балансу денег на дату",
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldyBS0sBvmK1HwHAFc",
+      "name": "Факт расходов, $",
+      "dbFieldName": "Fakt_rashodov",
+      "type": "number",
+      "description": "Расходы за период вне себестоимости",
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldP5vNrmZIVkDemVRB",
+      "name": "Комментарий",
+      "dbFieldName": "Kommentariy",
+      "type": "longText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldDaPa1z274wSLYSip",
+      "name": "После поставки, $",
+      "dbFieldName": "Posle_postavki",
+      "type": "formula",
+      "description": "Остаток на начало + прибыль по партиям",
+      "options": {
+        "expression": "{fld7BM8zcCoidI9QJvP}+{fldeXNXkEyhJNO1Fn7N}",
+        "timeZone": "utc",
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldGGfXveyIWPwrunvL",
+      "name": "Расчётный остаток, $",
+      "dbFieldName": "Raschyotnyy_ostatok",
+      "type": "formula",
+      "description": "После поставки − факт расходов",
+      "options": {
+        "expression": "{fldDaPa1z274wSLYSip}-{fldyBS0sBvmK1HwHAFc}",
+        "timeZone": "utc",
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldn9dQW9QR7YaHFf0k",
+      "name": "Расхождение, $",
+      "dbFieldName": "Rashozhdenie",
+      "type": "formula",
+      "description": "Факт остаток − расчётный остаток. ≈0 — всё сходится; иначе где-то не учтена операция",
+      "options": {
+        "expression": "{fldhsxJSwedtW643H3N}-{fldGGfXveyIWPwrunvL}",
+        "timeZone": "utc",
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    }
+  ]
+}

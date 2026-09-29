@@ -1,0 +1,357 @@
+{
+  "id": "tblOM0LG7B3VlWFBqsq",
+  "name": "Движения склада",
+  "description": null,
+  "dbTableName": "bseNgKMy9d3MkxwlAjk.tblOM0LG7B3VlWFBqsq",
+  "fields": [
+    {
+      "id": "fldjGZoW3oTWluqg8VR",
+      "name": "Операция",
+      "dbFieldName": "Operaciya",
+      "type": "formula",
+      "description": null,
+      "options": {
+        "expression": "DATETIME_FORMAT({fldLNohJQ5UqXN9KqsB},'DD.MM.YY') & ' · ' & {fldm3RXdcOgcHr9J91i} & IF({fldvgIisnBRFBbs7MbF}, ' · ' & {fldvgIisnBRFBbs7MbF}, '') & IF({fldkIBXaWyDc6CSYMxy}, ' → ' & {fldkIBXaWyDc6CSYMxy}, '')",
+        "timeZone": "Asia/Bishkek"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldLNohJQ5UqXN9KqsB",
+      "name": "Дата",
+      "dbFieldName": "Data",
+      "type": "date",
+      "description": null,
+      "options": {
+        "formatting": {
+          "date": "DD.MM.YYYY",
+          "time": "None",
+          "timeZone": "Asia/Bishkek"
+        }
+      },
+      "cellValueType": "dateTime",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldm3RXdcOgcHr9J91i",
+      "name": "Тип",
+      "dbFieldName": "Tip",
+      "type": "singleSelect",
+      "description": null,
+      "options": [
+        "Приход",
+        "Отгрузка",
+        "Списание"
+      ],
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldebDMZYBCSC6ZEZpg",
+      "name": "Коробки",
+      "dbFieldName": "Korobki",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldVz19KfgYc4xX7KhB",
+      "name": "Кг",
+      "dbFieldName": "Kg",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldmjyTKTvvNZ1oF97e",
+      "name": "Цена сом/кг",
+      "dbFieldName": "Cena_som_kg",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldTUOtg4mqXGdfhvUd",
+      "name": "Цена плановая продажная, сом/кг",
+      "dbFieldName": "Sebestoimost_som_kg",
+      "type": "number",
+      "description": "Плановая цена продажи из партии (Excel: колонка «цена» складского листа). Отгрузка: факт = «Цена сом/кг»",
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldswR8MaJUnn7zg3oP",
+      "name": "Сумма вручную",
+      "dbFieldName": "Summa_vruchnuyu",
+      "type": "number",
+      "description": "Если товар/кг не указаны (перенос из листа взаиморасчёта)",
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldlZV2gPBAMyULedDL",
+      "name": "В расчёт с контрагентом",
+      "dbFieldName": "V_raschyot_s_kontragentom",
+      "type": "checkbox",
+      "description": null,
+      "options": {
+        "defaultValue": true
+      },
+      "cellValueType": "boolean",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldvv5aSMxJqRY89H28",
+      "name": "Комментарий",
+      "dbFieldName": "Kommentariy",
+      "type": "longText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldm0HVvv6WZPJNE69l",
+      "name": "Источник",
+      "dbFieldName": "Istochnik",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldvgIisnBRFBbs7MbF",
+      "name": "Товар",
+      "dbFieldName": "Tovar",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "manyOne",
+        "foreignTableId": "tbldSXhogjtsljJr8fJ",
+        "lookupFieldId": "fldgwEF1Kc3Ye6y0Ncx",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblOM0LG7B3VlWFBqsq",
+        "selfKeyName": "__id",
+        "foreignKeyName": "__fk_fldvgIisnBRFBbs7MbF",
+        "symmetricFieldId": "fld5z1HTEMJWkT2oHt0"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld1IAm8t5H2fBvwhrI",
+      "name": "Партия",
+      "dbFieldName": "Partiya",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "manyOne",
+        "foreignTableId": "tblsv7z4tEvxYy3Zts1",
+        "lookupFieldId": "fld8ozm0K8RENhFBUVw",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblOM0LG7B3VlWFBqsq",
+        "selfKeyName": "__id",
+        "foreignKeyName": "__fk_fld1IAm8t5H2fBvwhrI",
+        "symmetricFieldId": "fldyudluMyFqwwKBfXM"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldkIBXaWyDc6CSYMxy",
+      "name": "Контрагент",
+      "dbFieldName": "Kontragent",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "manyOne",
+        "foreignTableId": "tblxrCa3oK3bqkCZGbH",
+        "lookupFieldId": "fld4a8gsR09nAxVxxnf",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblOM0LG7B3VlWFBqsq",
+        "selfKeyName": "__id",
+        "foreignKeyName": "__fk_fldkIBXaWyDc6CSYMxy",
+        "symmetricFieldId": "fldQCSmAeyQI1SiDZpQ"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld6NcNqt0YKayBPopG",
+      "name": "Сумма, сом",
+      "dbFieldName": "Summa_som",
+      "type": "formula",
+      "description": "Кг × цена (или сумма вручную)",
+      "options": {
+        "expression": "IF({fldswR8MaJUnn7zg3oP}, {fldswR8MaJUnn7zg3oP}, {fldVz19KfgYc4xX7KhB}*{fldmjyTKTvvNZ1oF97e})",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldduRLgN8tPS0I4DX7",
+      "name": "Кг ±",
+      "dbFieldName": "Kg_2",
+      "type": "formula",
+      "description": "Приход +, отгрузка/списание −",
+      "options": {
+        "expression": "IF({fldm3RXdcOgcHr9J91i}='Приход', {fldVz19KfgYc4xX7KhB}, -{fldVz19KfgYc4xX7KhB})",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldl7DfTWUUfqy4J4Ar",
+      "name": "Коробки ±",
+      "dbFieldName": "Korobki_2",
+      "type": "formula",
+      "description": null,
+      "options": {
+        "expression": "IF({fldm3RXdcOgcHr9J91i}='Приход', {fldebDMZYBCSC6ZEZpg}, -{fldebDMZYBCSC6ZEZpg})",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld9rsq5WycE4uc7wZa",
+      "name": "Склад ±, сом (по плановой цене)",
+      "dbFieldName": "Sklad_som_sebest",
+      "type": "formula",
+      "description": "±кг × плановая цена продажи",
+      "options": {
+        "expression": "{fldduRLgN8tPS0I4DX7}*{fldTUOtg4mqXGdfhvUd}",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldXXb3UiDIMFUuOzvD",
+      "name": "Отклонение от плана, сом",
+      "dbFieldName": "Marzha_som",
+      "type": "formula",
+      "description": "(факт цена − плановая цена) × кг; для отгрузок. Excel: колонка «разница» складского листа (с обратным знаком)",
+      "options": {
+        "expression": "IF(AND({fldm3RXdcOgcHr9J91i}='Отгрузка', {fldVz19KfgYc4xX7KhB}), ({fldmjyTKTvvNZ1oF97e}-{fldTUOtg4mqXGdfhvUd})*{fldVz19KfgYc4xX7KhB}, 0)",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldlUlEkNHRkrMJnMP5",
+      "name": "Влияние на долг",
+      "dbFieldName": "Vliyanie_na_dolg",
+      "type": "formula",
+      "description": "+ увеличивает долг контрагента перед нами",
+      "options": {
+        "expression": "IF({fldlZV2gPBAMyULedDL}, IF({fldm3RXdcOgcHr9J91i}='Отгрузка', {fld6NcNqt0YKayBPopG}, IF({fldm3RXdcOgcHr9J91i}='Приход', -{fld6NcNqt0YKayBPopG}, 0)), 0)",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "type": "decimal",
+          "precision": 0
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    }
+  ]
+}
