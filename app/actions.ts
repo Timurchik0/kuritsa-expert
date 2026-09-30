@@ -14,8 +14,10 @@ import entities from "@/schema/entities.json";
 import quotas from "@/schema/quotas.json";
 import licenses from "@/schema/licenses.json";
 import requests from "@/schema/requests.json";
+import snapshots from "@/schema/snapshots.json";
+import { calculateSummary } from "./finance";
 
-const schemas = { products, accounts, contacts, batches, movements, payments, taxes, reconciliations, settings, entities, quotas, licenses, requests } as const;
+const schemas = { products, accounts, contacts, batches, movements, payments, taxes, reconciliations, settings, entities, quotas, licenses, requests, snapshots } as const;
 export type TableKey = keyof typeof schemas;
 export type Row = { id: string; [key: string]: unknown };
 export type Dataset = Record<TableKey, Row[]>;
@@ -271,4 +273,28 @@ export async function payTax(taxId: string, accountId: string, amount: number, p
     throw error;
   }
   return payment.id;
+}
+
+// Freezes the current summary («баланс денег») as a dated row; one app snapshot per day (a repeat updates it).
+export async function saveSnapshot(comment = "") {
+  if (typeof comment !== "string" || comment.length > 2000) throw new Error("Слишком длинный комментарий");
+  const keys: TableKey[] = ["accounts", "contacts", "batches", "products", "taxes", "settings"];
+  const loaded = await Promise.all(keys.map((key) => readWithRetry(key)));
+  const data = Object.fromEntries((Object.keys(schemas) as TableKey[]).map((key) => [key, loaded[keys.indexOf(key)] ?? []])) as Dataset;
+  const s = calculateSummary(data);
+  const cents = (v: number | null) => v == null ? null : Math.round(v * 100) / 100;
+  const day = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Bishkek", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const values: Record<string, unknown> = {
+    "Снимок": `Снимок из приложения · ${day.split("-").reverse().join(".")}`, "Дата": day, "Источник": "Приложение",
+    "Деньги на счетах, сом": cents(s.accounts), "Остаток у контрагентов, сом": cents(s.counterparts),
+    "Отправлено поставщикам, сом": cents(s.inTransit), "Склад, сом": cents(s.stock), "Деньги в обороте, сом": cents(s.turnover),
+    "Займы (нетто), сом": cents(s.loans), "Капитал, сом": cents(s.capital), "Налоги к уплате, сом": cents(s.taxes),
+    "Курс $": s.rate, "Капитал, $": cents(s.capitalUsd), "Реальный остаток, $": cents(s.realUsd),
+  };
+  if (comment.trim()) values["Комментарий"] = comment.trim();
+  const existing = (await readTable("snapshots")).find((row) => row["Источник"] === "Приложение" && row["Дата"]
+    && new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Bishkek" }).format(new Date(String(row["Дата"]))) === day);
+  const payload = writable("snapshots", values);
+  const result = existing ? await updateRecord(snapshots.id, existing.id, payload) : await createRecord(snapshots.id, payload);
+  return result.id;
 }

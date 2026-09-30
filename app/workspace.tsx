@@ -15,9 +15,10 @@ import { CalcInfo } from "./calc-info";
 import { BatchCalculations, batchDetail } from "./batch-calculations";
 import { accountInfo, contactInfo, movementInfo, paymentInfo, productInfo } from "./record-info";
 import SummaryView from "./summary-view";
+import SnapshotsView from "./snapshots-view";
 import { ReconciliationsView, SettingsView, TaxesView } from "./finance-views";
 import { BANK_FEE, INTERNAL_TAX, REPORT_RATE, RUSSIA_SALES_TAX, RUSSIA_VAT, batchEstimates, calculateSummary, kgPerBox, setting, supplierPaidSom } from "./finance";
-import { createMovement, loadAffected, loadTables, payTax, receiveBatch, saveRecord, type DataResult, type Dataset, type Row, type TableKey, type TablesResult } from "./actions";
+import { createMovement, loadAffected, loadTables, payTax, receiveBatch, saveRecord, saveSnapshot, type DataResult, type Dataset, type Row, type TableKey, type TablesResult } from "./actions";
 import WarehouseView from "./warehouse-view";
 import BatchesList from "./batches-list";
 import LoansView from "./loans-view";
@@ -59,7 +60,7 @@ function normalizeInputDate(v: unknown) {
 const label = (list: Row[], id: unknown) => text(list.find((item) => item.id === id)?.["Название"] ?? list.find((item) => item.id === id)?.["Партия"] ?? list.find((item) => item.id === id)?.["Номер партии"]) || "—";
 const uiInput = "h-9 w-full rounded border border-[#dbe2df] bg-white px-3 text-sm text-[#22332f] outline-none focus:border-[#178779] focus:ring-2 focus:ring-[#178779]/10 disabled:bg-[#f3f5f4]";
 const panel = "rounded-md border border-[#e1e7e4] bg-white";
-const allTables: TableKey[] = ["products", "accounts", "contacts", "batches", "movements", "payments", "taxes", "reconciliations", "settings", "entities", "quotas", "licenses", "requests"];
+const allTables: TableKey[] = ["products", "accounts", "contacts", "batches", "movements", "payments", "taxes", "reconciliations", "settings", "entities", "quotas", "licenses", "requests", "snapshots"];
 const delayedFields: Partial<Record<TableKey, string[]>> = {
   contacts: ["Баланс", "Статус расчётов", "Последняя отгрузка", "Последний платёж"],
   products: ["Остаток, кг", "Остаток, коробок", "Стоимость остатка, сом", "Средняя плановая цена, сом/кг"],
@@ -280,6 +281,10 @@ export default function Workspace({ initial }: { initial: DataResult }) {
       if (close) setModal(modal);
     } finally { setBusy(false); }
   }
+  const takeSnapshot = () => run((d) => d, async () => {
+    await saveSnapshot();
+    await refreshData(["snapshots"], () => loadTables(["snapshots"]), false);
+  }, "Баланс зафиксирован", [], false);
   const linkName = (key: "products" | "contacts" | "accounts" | "batches", id: unknown) => label(data[key], id);
   const setPage = (page: Section) => { setSection(page); setMobileNav(false); setSelectedContact(null); setSearch(""); };
 
@@ -390,7 +395,7 @@ export default function Workspace({ initial }: { initial: DataResult }) {
         {Object.keys(result.errors).length > 0 && <div className="mb-5 flex items-center justify-between gap-2 rounded border border-[#e9c9a4] bg-[#fff9ee] p-3 text-sm text-[#8d5b2d]">Часть данных не обновилась. Показаны последние доступные значения.<button onClick={refresh} className="underline">Повторить</button></div>}
         {section === "summary" && <>
           <Title title="Сводка бизнеса" subtitle="Деньги, обязательства и товарный запас на сегодня" />
-          {fail(["accounts", "contacts", "products", "batches", "taxes", "settings"]) ? <Empty message="Сводка недоступна: ошибка загрузки одного из источников" /> : <SummaryView data={data} summary={summary} />}
+          {fail(["accounts", "contacts", "products", "batches", "taxes", "settings"]) ? <Empty message="Сводка недоступна: ошибка загрузки одного из источников" /> : <><SummaryView data={data} summary={summary} /><SnapshotsView rows={data.snapshots} summary={summary} busy={busy} onSnapshot={takeSnapshot} /></>}
         </>}
         {section === "batches" && <><Title title="Партии" subtitle={`${data.batches.length} партий · движение от предоплаты до продажи`} action={<div className="flex items-center gap-2"><div className="flex rounded border border-[#dce6de] bg-white p-1">{([["kanban", "Канбан", Columns3], ["list", "Список", List]] as const).map(([key, title, Icon]) => <button key={key} onClick={() => setBatchView(key)} className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-xs ${batchView === key ? "bg-[#e5f2eb] font-semibold text-[#14745f]" : "text-[#708177]"}`}><Icon size={14} />{title}</button>)}</div><Action onClick={() => open("batch")}><Plus size={16} /> Новая партия</Action></div>} />{fail(["batches"]) ? <Empty message="Не удалось загрузить партии" /> : batchView === "list" ? <BatchesList data={data} stages={stages} onOpen={(b) => open("batch", {}, b)} /> : <div className="flex min-h-[560px] gap-3 overflow-x-auto pb-5">{stages.map((stage, i) => { const list = data.batches.filter((b) => b["Статус"] === stage).sort((a, b) => stage === "Продана" ? dateInput(b["Дата прибытия"]).localeCompare(dateInput(a["Дата прибытия"])) : 0); return <div key={stage} className="w-[255px] min-w-[255px] rounded-md bg-[#eef2f0] p-2.5" onDragOver={(e) => e.preventDefault()} onDrop={() => { if (dragged) moveBatch(dragged, stage); setDragged(null); }}><div className="mb-3 flex items-center gap-2 px-1.5 py-1 text-xs font-semibold"><span className={`h-2 w-2 rounded-full ${["bg-[#ca9b59]", "bg-[#5e9eb2]", "bg-[#b79a6d]", "bg-[#298d70]", "bg-[#889990]"][i]}`} />{stage}<span className="ml-auto rounded bg-white px-1.5 py-0.5 text-[11px] text-[#728079]">{list.length}</span></div><div className="max-h-[75vh] space-y-2 overflow-y-auto pr-0.5">{list.map((b) => <div key={b.id} draggable={!busy} onDragStart={() => setDragged(b.id)} onDragEnd={() => setDragged(null)} className="cursor-grab rounded border border-[#e0e7e3] bg-white p-3 shadow-[0_1px_2px_rgba(20,50,30,.03)] active:cursor-grabbing"><div className="w-full text-left"><button className="w-full text-left" onClick={() => open("batch", {}, b)}><div className="flex items-start justify-between gap-2"><strong className="line-clamp-2 text-[13px] text-[#263d32]">{text(b["Партия"]) || text(b["Номер партии"])}</strong><ChevronRight className="shrink-0 text-[#9aaba2]" size={15} /></div><div className="mt-2 text-xs text-[#7a8a80]">{linkName("products", b["ТоварId"])} · {fmt(b["Кг"])} кг</div></button><div className="mt-3 border-t border-[#eef1ef] pt-2.5 text-xs"><div className="flex justify-between"><span className="text-[#89978e]">{stage === "Продана" ? "Прибыль" : "Прибыль (план)"}</span><span className="inline-flex items-center gap-1"><strong className={n(b["Прибыль, сом"]) < 0 ? "text-[#b9584c]" : "text-[#287862]"}>{som(b["Прибыль, сом"])}</strong><CalcInfo label="Прибыль, сом" {...batchDetail("Прибыль, сом", b)} /></span></div><div className="mt-2 flex items-center justify-between gap-2"><span className="text-[#89978e]">Аванс в пути</span><span className="inline-flex items-center gap-1 font-semibold tabular-nums">{som(b["Аванс поставщику (в пути), сом"])}<CalcInfo label="Аванс поставщику (в пути), сом" {...batchDetail("Аванс поставщику (в пути), сом", b)} /></span></div></div></div>{["В пути", "На таможне"].includes(stage) && <button className="mt-3 w-full rounded border border-[#bcd9ce] px-2 py-1.5 text-xs font-medium text-[#167561] hover:bg-[#eff8f3] disabled:opacity-50" disabled={busy} onClick={() => receive(b)}>Принять на склад</button>}</div>)}</div></div>; })}</div>}</>}
         {section === "warehouse" && <><Title title="Склад" subtitle="Остатки и движения товара" action={<div className="flex gap-2"><Action variant="outline" onClick={() => open("receipt", { "Тип": "Приход" })}><Plus size={16} /> Приход</Action><Action onClick={() => open("shipment", { "Тип": "Отгрузка" })}><Truck size={16} /> Отгрузка клиенту</Action></div>} />{fail(["products", "movements"]) ? <Empty message="Не удалось загрузить склад" /> : <WarehouseView data={data} />}</>}

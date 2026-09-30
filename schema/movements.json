@@ -352,6 +352,44 @@
       "isLookup": null,
       "isComputed": true,
       "isMultipleCellValue": false
+    },
+    {
+      "id": "fldkcAwQHFuCKj1ZDLk",
+      "name": "Себестоимость 1 кг партии, сом",
+      "dbFieldName": "Sebestoimost_1_kg_partii_som",
+      "type": "formula",
+      "description": null,
+      "options": {
+        "expression": "IF({fldS6YUGQkbWY1g5jYt}>0, {fldxE2AMYfuHab4zup4}/{fldS6YUGQkbWY1g5jYt}, 0)",
+        "timeZone": "Asia/Bishkek",
+        "formatting": {
+          "precision": 2,
+          "type": "decimal"
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": true,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld3lkL6oozjUud1RO9",
+      "name": "Наценка к себестоимости, сом",
+      "dbFieldName": "Nacenka_k_sebestoimosti_som",
+      "type": "formula",
+      "description": null,
+      "options": {
+        "expression": "IF(AND({fldm3RXdcOgcHr9J91i}='Отгрузка', {fldkcAwQHFuCKj1ZDLk}>0, {fldVz19KfgYc4xX7KhB}>0), ({fldmjyTKTvvNZ1oF97e}-{fldkcAwQHFuCKj1ZDLk})*{fldVz19KfgYc4xX7KhB}, BLANK())",
+        "timeZone": "utc",
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
     }
   ]
 }

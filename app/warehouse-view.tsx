@@ -27,6 +27,26 @@ export default function WarehouseView({ data }: { data: Dataset }) {
   const stockKg = data.products.reduce((sum, row) => sum + n(row["Остаток, кг"]), 0);
   const positive = data.products.filter((row) => n(row["Остаток, кг"]) > 0).length;
 
+  // cost of 1 kg for a shipment: its batch if linked, otherwise the weighted average over the product's batches
+  const avgCost = new Map(data.products.map((p) => {
+    const own = data.batches.filter((b) => b["ТоварId"] === p.id && n(b["Кг"]) > 0 && n(b["Себестоимость итого, сом"]) > 0);
+    const kg = own.reduce((s, b) => s + n(b["Кг"]), 0);
+    return [p.id, { cost: kg ? own.reduce((s, b) => s + n(b["Себестоимость итого, сом"]), 0) / kg : 0, batches: own.length }];
+  }));
+  const markupOf = (r: Row) => {
+    if (r["Тип"] !== "Отгрузка" || n(r["Кг"]) <= 0) return null;
+    const batch = r["ПартияId"] ? data.batches.find((b) => b.id === r["ПартияId"]) : undefined;
+    const exact = n(batch?.["Себестоимость 1 кг, сом"]);
+    const avg = avgCost.get(String(r["ТоварId"]));
+    const cost = exact || avg?.cost || 0;
+    if (!cost) return null;
+    return { cost, exact: Boolean(exact), batches: avg?.batches ?? 0, value: (n(r["Цена сом/кг"]) - cost) * n(r["Кг"]) };
+  };
+  const shipments = withKg.filter((r) => r["Тип"] === "Отгрузка");
+  const markups = shipments.map(markupOf).filter((m) => m != null);
+  const markupTotal = markups.reduce((sum, m) => sum + m.value, 0);
+  const markupKg = shipments.filter((r) => markupOf(r) != null).reduce((sum, r) => sum + n(r["Кг"]), 0);
+
   const perProduct = new Map(data.products.map((p) => {
     const rows = withKg.filter((m) => m["ТоварId"] === p.id);
     return [p.id, { in: rows.filter((m) => m["Тип"] === "Приход").reduce((s, m) => s + n(m["Кг"]), 0), out: rows.filter(outgoing).reduce((s, m) => s + n(m["Кг"]), 0), ops: rows.length }];
@@ -44,11 +64,12 @@ export default function WarehouseView({ data }: { data: Dataset }) {
     { label: "Остаток всего", value: `${fmt(stockKg)} кг`, extra: `${data.products.length} позиций · ${positive} с положительным остатком`, formula: "Σ «Остаток, кг» по всем товарам", substitution: `${data.products.map((p) => fmt(p["Остаток, кг"])).join(" + ")} = ${fmt(stockKg)} кг` },
     { label: "Приход всего", value: `${fmt(received)} кг`, formula: "Σ кг движений типа «Приход»", substitution: `${withKg.filter((r) => r["Тип"] === "Приход").length} приходов = ${fmt(received)} кг` },
     { label: "Отгрузка всего", value: `${fmt(shipped)} кг`, formula: "Σ кг движений типа «Отгрузка» и «Списание»", substitution: `${withKg.filter(outgoing).length} операций = ${fmt(shipped)} кг` },
+    { label: "Наценка к себестоимости", value: som(markupTotal), extra: `${markups.length} из ${shipments.length} отгрузок · ${fmt(markupKg)} кг`, formula: "Σ (цена продажи − себестоимость 1 кг) × кг по отгрузкам. Себестоимость — из партии отгрузки, а если партия не указана — средневзвешенная себестоимость партий этого товара (Σ себестоимость итого ÷ Σ кг).", substitution: `${markups.length} отгрузок = ${som(markupTotal)}; без себестоимости (нет партий товара): ${shipments.length - markups.length}` },
     { label: "Операций всего", value: fmt(withKg.length), formula: "Количество движений склада с весом (кг > 0)", substitution: `${withKg.length} из ${data.movements.length} записей (остальные — суммы из листов взаиморасчёта без веса)` },
   ];
 
   return <>
-    <div className="mb-6 grid grid-cols-2 overflow-hidden rounded-md border border-[#e1e7e4] bg-white lg:grid-cols-4">{tiles.map((t) => <div key={t.label} className="border-b border-r border-[#edf1ee] p-4 last:border-r-0 lg:border-b-0"><div className="flex items-center justify-between gap-2 text-xs text-[#718278]">{t.label}<CalcInfo label={t.label} formula={t.formula} substitution={t.substitution} source="Товары и Движения склада" excel="Складские листы Excel: итоги кг" /></div><div className="mt-2 text-xl font-semibold tabular-nums">{t.value}</div>{t.extra && <div className="mt-1 text-[11px] text-[#8b998f]">{t.extra}</div>}</div>)}</div>
+    <div className="mb-6 grid grid-cols-2 overflow-hidden rounded-md border border-[#e1e7e4] bg-white lg:grid-cols-5">{tiles.map((t) => <div key={t.label} className="border-b border-r border-[#edf1ee] p-4 last:border-r-0 lg:border-b-0"><div className="flex items-center justify-between gap-2 text-xs text-[#718278]">{t.label}<CalcInfo label={t.label} formula={t.formula} substitution={t.substitution} source="Товары, Движения склада, Партии" excel="Складские листы Excel: итоги кг; «расчет прибыли»: себестоимость 1 кг" /></div><div className="mt-2 text-xl font-semibold tabular-nums">{t.value}</div>{t.extra && <div className="mt-1 text-[11px] text-[#8b998f]">{t.extra}</div>}</div>)}</div>
 
     <div className="mb-3 flex items-center justify-between gap-2"><h2 className="text-base font-semibold">Остатки по позициям</h2>{product && <button className="text-xs text-[#147d6e] underline" onClick={() => setProduct("")}>Показать все позиции в журнале</button>}</div>
     <div className={`${panel} mb-8 grid md:grid-cols-2 xl:grid-cols-3`}>{[...data.products].sort((a, b) => text(a["Название"]).localeCompare(text(b["Название"]), "ru")).map((p) => {
@@ -70,9 +91,10 @@ export default function WarehouseView({ data }: { data: Dataset }) {
       <SearchSelect name="Сортировка" required value={sortBy} onChange={setSortBy} items={[{ value: "date", title: "По дате" }, { value: "kg", title: "По весу" }, { value: "sum", title: "По сумме" }]} className="w-32" />
       <SortDirection desc={desc} onToggle={() => setDesc(!desc)} />
     </div>
-    <div className={`${panel} overflow-x-auto`}><table className="w-full min-w-[1150px]"><thead className="border-b bg-[#fbfcfb]"><tr>{["Дата", "Партия", "Контрагент", "Позиция", "Тип", "Коробки", "Кг", "Цена плановая продажная", "Цена продажи факт", "Сумма", "Отклонение от плана"].map((h) => <th key={h} className={`${th} ${["Коробки", "Кг", "Цена плановая продажная", "Цена продажи факт", "Сумма", "Отклонение от плана"].includes(h) ? "text-right" : ""}`}>{h}</th>)}</tr></thead>
+    <div className={`${panel} overflow-x-auto`}><table className="w-full min-w-[1300px]"><thead className="border-b bg-[#fbfcfb]"><tr>{["Дата", "Партия", "Контрагент", "Позиция", "Тип", "Коробки", "Кг", "Цена плановая продажная", "Цена продажи факт", "Сумма", "Отклонение от плана", "Наценка к себестоимости"].map((h) => <th key={h} className={`${th} ${["Коробки", "Кг", "Цена плановая продажная", "Цена продажи факт", "Сумма", "Отклонение от плана", "Наценка к себестоимости"].includes(h) ? "text-right" : ""}`}>{h}</th>)}</tr></thead>
       <tbody>{rows.slice(page * PAGE, (page + 1) * PAGE).map((r) => {
         const ship = r["Тип"] === "Отгрузка"; const kg = n(r["Кг"]); const sign = r["Тип"] === "Приход" ? "" : "−";
+        const markup = markupOf(r);
         const dev = ship && kg ? (n(r["Цена сом/кг"]) - n(r["Цена плановая продажная, сом/кг"])) * kg : null;
         return <tr key={r.id} className="border-b last:border-0">
           <td className={`${td} whitespace-nowrap text-[#7d8b81]`}>{date(r["Дата"])}</td>
@@ -86,6 +108,7 @@ export default function WarehouseView({ data }: { data: Dataset }) {
           <td className={`${td} whitespace-nowrap text-right tabular-nums`}>{ship && kg ? som(r["Цена сом/кг"]) : "—"}</td>
           <td className={`${td} whitespace-nowrap text-right tabular-nums`}><span className="inline-flex items-center gap-1">{som(r["Сумма, сом"])}<CalcInfo label="Сумма движения" {...movementInfo(r)} /></span></td>
           <td className={`${td} whitespace-nowrap text-right tabular-nums ${dev != null && dev < 0 ? "text-[#b45c50]" : dev ? "text-[#227964]" : ""}`}>{dev == null ? "—" : <span className="inline-flex items-center gap-1">{dev > 0 ? "+" : ""}{som(dev)}<CalcInfo label="Отклонение от плана" {...deviationInfo(r)} /></span>}</td>
+          <td className={`${td} whitespace-nowrap text-right tabular-nums ${markup && markup.value < 0 ? "text-[#b45c50]" : ""}`}>{markup == null ? "—" : <span className="inline-flex items-center gap-1">{som(markup.value)}{!markup.exact && <span className="text-[10px] text-[#9aa79f]" title="Партия не указана: средняя себестоимость партий товара">≈</span>}<CalcInfo label="Наценка к себестоимости" formula={markup.exact ? "(цена продажи − себестоимость 1 кг партии) × кг" : "(цена продажи − средняя себестоимость 1 кг партий товара) × кг; партия в отгрузке не указана, поэтому это оценка"} substitution={`(${som(r["Цена сом/кг"])} − ${som(Math.round(markup.cost * 100) / 100)}) × ${fmt(kg, 2)} = ${som(markup.value)}`} source={markup.exact ? "Партии: Себестоимость 1 кг, сом" : `Партии товара: ${markup.batches} шт., Σ себестоимость ÷ Σ кг`} excel="«расчет прибыли»: себестоимость за 1 кг; складской лист: цена продажи" /></span>}</td>
         </tr>;
       })}</tbody></table>{!rows.length && <div className="p-8 text-center text-sm text-[#86958b]">Нет движений по фильтрам</div>}</div>
     <Pager page={page} size={PAGE} total={rows.length} onPage={setPage} />

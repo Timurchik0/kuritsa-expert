@@ -11,6 +11,7 @@ const KEYS = {
   "Товары": "products", "Счета": "accounts", "Контрагенты": "contacts", "Партии": "batches",
   "Движения склада": "movements", "Платежи": "payments", "Налоги": "taxes", "Сверки": "reconciliations",
   "Настройки": "settings", "Юрлица": "entities", "Квоты": "quotas", "Лицензии": "licenses", "Заявки": "requests",
+  "Снимки баланса": "snapshots",
 };
 
 const api = async (path) => {

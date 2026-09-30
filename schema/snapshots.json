@@ -1,0 +1,264 @@
+{
+  "id": "tbljH6HtlnTFPXO2eOg",
+  "name": "Снимки баланса",
+  "description": null,
+  "dbTableName": "bseNgKMy9d3MkxwlAjk.tbljH6HtlnTFPXO2eOg",
+  "fields": [
+    {
+      "id": "fldyh58Bmoe5s7hI7qp",
+      "name": "Снимок",
+      "dbFieldName": "Snimok",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldAtPWLn92MnTIBRLh",
+      "name": "Дата",
+      "dbFieldName": "Data",
+      "type": "date",
+      "description": null,
+      "options": {
+        "formatting": {
+          "date": "DD.MM.YYYY",
+          "time": "None",
+          "timeZone": "Asia/Bishkek"
+        }
+      },
+      "cellValueType": "dateTime",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldasAZAFgtuzL7YzV4",
+      "name": "Источник",
+      "dbFieldName": "Istochnik",
+      "type": "singleSelect",
+      "description": null,
+      "options": [
+        "Excel",
+        "Приложение"
+      ],
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldPVK3J1zgGIAgsSOI",
+      "name": "Деньги на счетах, сом",
+      "dbFieldName": "Dengi_na_schetah_som",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld8MxfHIJhlk6KQenA",
+      "name": "Остаток у контрагентов, сом",
+      "dbFieldName": "Ostatok_u_kontragentov_som",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldhAD7GIygxzps2FNC",
+      "name": "Отправлено поставщикам, сом",
+      "dbFieldName": "Otpravleno_postavshchikam_som",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldfgY0FEpBjXX90duw",
+      "name": "Склад, сом",
+      "dbFieldName": "Sklad_som",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldIKdyGP0s1L8zIOMc",
+      "name": "Деньги в обороте, сом",
+      "dbFieldName": "Dengi_v_oborote_som",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldXTMFi40MuqxbgUHM",
+      "name": "Займы (нетто), сом",
+      "dbFieldName": "Zaymy_netto_som",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldA3D6jx4hqBWqgvuW",
+      "name": "Капитал, сом",
+      "dbFieldName": "Kapital_som",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldsxLqUqcfjDU4fN9k",
+      "name": "Налоги к уплате, сом",
+      "dbFieldName": "Nalogi_k_uplate_som",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldtNkpKrBWHoDk2vOY",
+      "name": "Курс $",
+      "dbFieldName": "Kurs",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldoKZCMM45wuCdk17a",
+      "name": "Капитал, $",
+      "dbFieldName": "Kapital",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fld9SaP4KTvtNQQKZKu",
+      "name": "Реальный остаток, $",
+      "dbFieldName": "Realnyy_ostatok",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldpHkUO3cbBsKqYgGy",
+      "name": "Комментарий",
+      "dbFieldName": "Kommentariy",
+      "type": "longText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldP58IeC8uMDUpniCV",
+      "name": "Исходный файл",
+      "dbFieldName": "Ishodnyy_fayl",
+      "type": "attachment",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": true
+    }
+  ]
+}
