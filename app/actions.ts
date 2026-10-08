@@ -1,6 +1,7 @@
 "use server";
 
 import { listRecords, getRecord, createRecord, updateRecord, deleteRecord, type RecordFields } from "@/lib/teable";
+import { request } from "@/lib/request";
 import products from "@/schema/products.json";
 import accounts from "@/schema/accounts.json";
 import contacts from "@/schema/contacts.json";
@@ -23,6 +24,20 @@ export type Row = { id: string; [key: string]: unknown };
 export type Dataset = Record<TableKey, Row[]>;
 export type DataResult = { data: Dataset; errors: Partial<Record<TableKey, string>> };
 type Field = { id: string; name: string; dbFieldName: string; type: string; options?: unknown };
+
+// The same code can serve a copy of the base (e.g. the clean stand): table ids are resolved by table name
+// when TEABLE_BASE_ID differs from the base the schema was generated from, and writes go by field name.
+let tableIds: Promise<Record<string, string>> | null = null;
+async function tableId(key: TableKey) {
+  const base = process.env.TEABLE_BASE_ID;
+  if (!base || schemas[key].dbTableName.startsWith(`${base}.`)) return schemas[key].id;
+  tableIds ??= request<{ id: string; name: string }[]>(`/base/${base}/table`).then((list) => Object.fromEntries(list.map((t) => [t.name, t.id])));
+  const ids = await tableIds.catch((error) => { tableIds = null; throw error; });
+  if (!ids[schemas[key].name]) throw new Error(`В базе нет таблицы «${schemas[key].name}»`);
+  return ids[schemas[key].name];
+}
+const create = async (key: TableKey, fields: RecordFields) => createRecord(await tableId(key), fields, "name");
+const update = async (key: TableKey, id: string, fields: RecordFields) => updateRecord(await tableId(key), id, fields, "name");
 const fields = (key: TableKey) => schemas[key].fields as Field[];
 const field = (key: TableKey, name: string) => fields(key).find((f) => f.name === name);
 const num = (v: unknown) => Number(v) || 0;
@@ -52,7 +67,7 @@ function toRow(key: TableKey, rec: { id: string; fields: Record<string, unknown>
 }
 
 async function readTable(key: TableKey, ids?: string[]): Promise<Row[]> {
-  const records = await listRecords(schemas[key].id);
+  const records = await listRecords(await tableId(key));
   const wanted = ids?.length ? new Set(ids) : null;
   return records.filter((r) => !wanted || wanted.has(r.id)).map((r) => toRow(key, r as { id: string; fields: Record<string, unknown> }));
 }
@@ -117,15 +132,15 @@ function writable(key: TableKey, input: Record<string, unknown>) {
     if (f.type === "link") {
       const options = f.options as { foreignKeyName?: string } | undefined;
       if (!options?.foreignKeyName?.startsWith("__fk_")) throw new Error(`Связь «${name}» недоступна`);
-      output[f.id] = value ? [String(value)] : null;
+      output[f.name] = value ? [String(value)] : null;
     } else if (f.type === "number") {
       if (value !== null && value !== "" && !Number.isFinite(Number(value))) throw new Error(`Некорректное число: ${name}`);
-      output[f.id] = value === "" || value === null ? null : Number(value);
-    } else if (f.type === "date") output[f.id] = value ? `${isoDate(value)}T00:00:00+06:00` : null;
-    else if (f.type === "checkbox") output[f.id] = Boolean(value);
+      output[f.name] = value === "" || value === null ? null : Number(value);
+    } else if (f.type === "date") output[f.name] = value ? `${isoDate(value)}T00:00:00+06:00` : null;
+    else if (f.type === "checkbox") output[f.name] = Boolean(value);
     else {
       if (f.type === "singleSelect" && value && !(f.options as string[]).includes(String(value))) throw new Error(`Недопустимое значение: ${name}`);
-      output[f.id] = value == null || value === "" ? null : String(value);
+      output[f.name] = value == null || value === "" ? null : String(value);
     }
   }
   return output;
@@ -138,10 +153,10 @@ const recId = (id: unknown) => {
 };
 async function ensureLink(key: TableKey, id: unknown) {
   if (!id) return;
-  if (!await getRecord(schemas[key].id, recId(id))) throw new Error("Связанная запись не найдена");
+  if (!await getRecord(await tableId(key), recId(id))) throw new Error("Связанная запись не найдена");
 }
 async function readOne(key: TableKey, id: string, names: string[]) {
-  const rec = await getRecord(schemas[key].id, recId(id));
+  const rec = await getRecord(await tableId(key), recId(id));
   if (!rec) throw new Error("Запись не найдена");
   const row = toRow(key, rec as { id: string; fields: Record<string, unknown> });
   return Object.fromEntries(names.map((name) => [name, row[name] ?? null]));
@@ -151,8 +166,14 @@ async function readOne(key: TableKey, id: string, names: string[]) {
 // So links are cleared first (parents recompute), then the record is deleted.
 async function deleteRecordSafe(key: TableKey, id: string) {
   const own = fields(key).filter(isOwnLink);
-  if (own.length) await updateRecord(schemas[key].id, recId(id), Object.fromEntries(own.map((f) => [f.id, null])));
-  await deleteRecord(schemas[key].id, recId(id));
+  if (own.length) await update(key, recId(id), Object.fromEntries(own.map((f) => [f.name, null])));
+  await deleteRecord(await tableId(key), recId(id));
+}
+
+// a quota / license / request covers one product and one country; a child must not contradict its parent
+function sameScope(parent: Record<string, unknown>, product: unknown, country: unknown, label: string) {
+  if (parent["ТоварId"] && product && parent["ТоварId"] !== product) throw new Error(`${label} выдана на другой вид товара`);
+  if (parent["Страна"] && country && parent["Страна"] !== country) throw new Error(`${label} относится к стране «${String(parent["Страна"])}»`);
 }
 
 export async function saveRecord(key: TableKey, input: Record<string, unknown>, id?: string) {
@@ -161,14 +182,24 @@ export async function saveRecord(key: TableKey, input: Record<string, unknown>, 
   if (key === "quotas" && (!input["Квота"] || num(input["Объём, кг"]) <= 0)) throw new Error("Укажите название квоты и объём");
   if (key === "licenses") {
     if (!input["Лицензия"] || !input["Квота"] || num(input["Объём, кг"]) <= 0) throw new Error("Укажите номер лицензии, квоту и объём");
-    const quota = await readOne("quotas", String(input["Квота"]), ["Объём, кг", "В лицензиях, кг"]);
+    const quota = await readOne("quotas", String(input["Квота"]), ["Объём, кг", "В лицензиях, кг", "ТоварId", "Страна"]);
+    input = { ...input, "Товар": input["Товар"] || quota["ТоварId"], "Страна": input["Страна"] || quota["Страна"] };
+    sameScope(quota, input["Товар"], input["Страна"], "Квота");
     const own = id ? num((await readOne("licenses", id, ["Объём, кг"]))["Объём, кг"]) : 0;
     const free = num(quota["Объём, кг"]) - num(quota["В лицензиях, кг"]) + own;
     if (num(input["Объём, кг"]) > free + 0.005) throw new Error(`Объём больше нераспределённого остатка квоты (${free} кг)`);
   }
+  let linkedQuota: unknown = null;
   if (key === "requests") {
     if (!input["Заявка"] || !input["Лицензия"] || num(input["Объём, кг"]) <= 0) throw new Error("Укажите номер заявки, лицензию и объём");
-    const license = await readOne("licenses", String(input["Лицензия"]), ["Остаток, кг"]);
+    const license = await readOne("licenses", String(input["Лицензия"]), ["Остаток, кг", "ТоварId", "Страна", "КвотаId"]);
+    linkedQuota = license["КвотаId"];
+    input = { ...input, "Товар": input["Товар"] || license["ТоварId"], "Страна": input["Страна"] || license["Страна"] };
+    sameScope(license, input["Товар"], input["Страна"], "Лицензия");
+    if (input["Партия"]) {
+      const batch = await readOne("batches", String(input["Партия"]), ["ТоварId", "Страна"]);
+      sameScope({ ...license, "ТоварId": input["Товар"] || license["ТоварId"] }, batch["ТоварId"], batch["Страна"], "Заявка");
+    }
     const own = id ? num((await readOne("requests", id, ["Объём, кг"]))["Объём, кг"]) : 0;
     const free = num(license["Остаток, кг"]) + own;
     if (num(input["Объём, кг"]) > free + 0.005) throw new Error(`Объём больше остатка лицензии (${free} кг)`);
@@ -198,7 +229,9 @@ export async function saveRecord(key: TableKey, input: Record<string, unknown>, 
   if (key === "batches" && !id && (!input["Номер партии"] || !input["Товар"])) throw new Error("Укажите номер партии и товар");
   const payload = writable(key, input);
   if (!Object.keys(payload).length) throw new Error("Нет данных для сохранения");
-  const result = id ? await updateRecord(schemas[key].id, id, payload) : await createRecord(schemas[key].id, payload);
+  const result = id ? await update(key, id, payload) : await create(key, payload);
+  // a request linked to a batch also puts its license and quota on that batch
+  if (key === "requests" && input["Партия"]) await update("batches", String(input["Партия"]), writable("batches", { "Лицензия": input["Лицензия"], ...(linkedQuota ? { "Квота": linkedQuota } : {}) }));
   return result.id;
 }
 
@@ -221,7 +254,7 @@ export async function createMovement(input: Record<string, unknown>) {
     if (plan <= 0) throw new Error("Укажите цену или плановую цену продажи");
     input = { ...input, "Цена плановая продажная, сом/кг": plan, "В расчёт с контрагентом": false };
   }
-  const result = await createRecord(movements.id, writable("movements", input));
+  const result = await create("movements", writable("movements", input));
   return result.id;
 }
 
@@ -237,9 +270,9 @@ export async function receiveBatch(id: string) {
   const kgPerBox = num(product["Кг в коробке"]);
   if (kgPerBox <= 0) throw new Error("У товара не задано поле «Кг в коробке»");
   const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Bishkek", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-  await updateRecord(batches.id, id, writable("batches", { "Статус": "На складе", "Дата прибытия": today }));
+  await update("batches", id, writable("batches", { "Статус": "На складе", "Дата прибытия": today }));
   try {
-    const movement = await createRecord(movements.id, writable("movements", {
+    const movement = await create("movements", writable("movements", {
       "Дата": today, "Тип": "Приход", "Товар": productId, "Партия": id,
       "Кг": num(batch["Кг"]), "Коробки": num(batch["Кг"]) / kgPerBox,
       // stock is valued at the planned sale price, like the «цена» column of the Excel warehouse sheets
@@ -249,7 +282,7 @@ export async function receiveBatch(id: string) {
     }));
     return movement.id;
   } catch (error) {
-    try { await updateRecord(batches.id, id, writable("batches", { "Статус": batch["Статус"], "Дата прибытия": batch["Дата прибытия"] ? String(batch["Дата прибытия"]).slice(0, 10) : null })); }
+    try { await update("batches", id, writable("batches", { "Статус": batch["Статус"], "Дата прибытия": batch["Дата прибытия"] ? String(batch["Дата прибытия"]).slice(0, 10) : null })); }
     catch { throw new Error("Приход не создан, а статус партии не удалось восстановить. Проверьте партию вручную."); }
     throw error;
   }
@@ -260,13 +293,13 @@ export async function payTax(taxId: string, accountId: string, amount: number, p
   await ensureLink("accounts", accountId);
   const tax = await readOne("taxes", taxId, ["Основание", "Оплачено, сом", "Остаток к уплате, сом"]);
   if (num(tax["Остаток к уплате, сом"]) <= 0 || amount > num(tax["Остаток к уплате, сом"]) + 0.005) throw new Error("Сумма превышает остаток налога к уплате");
-  const payment = await createRecord(payments.id, writable("payments", {
+  const payment = await create("payments", writable("payments", {
     "Дата": paymentDate, "Счёт": accountId, "Направление": "Расход", "Сумма": amount,
     "Валюта": "сом", "Категория": "Налоги", "Описание": `Налог: ${String(tax["Основание"] ?? "")}`,
     "В расчёт с контрагентом": false,
   }));
   try {
-    await updateRecord(taxes.id, taxId, writable("taxes", { "Оплачено, сом": num(tax["Оплачено, сом"]) + amount }));
+    await update("taxes", taxId, writable("taxes", { "Оплачено, сом": num(tax["Оплачено, сом"]) + amount }));
   } catch (error) {
     try { await deleteRecordSafe("payments", payment.id); }
     catch { throw new Error("Налог не обновлён, а платёж не удалось отменить. Проверьте записи вручную."); }
@@ -295,6 +328,38 @@ export async function saveSnapshot(comment = "") {
   const existing = (await readTable("snapshots")).find((row) => row["Источник"] === "Приложение" && row["Дата"]
     && new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Bishkek" }).format(new Date(String(row["Дата"]))) === day);
   const payload = writable("snapshots", values);
-  const result = existing ? await updateRecord(snapshots.id, existing.id, payload) : await createRecord(snapshots.id, payload);
+  const result = existing ? await update("snapshots", existing.id, payload) : await create("snapshots", payload);
   return result.id;
+}
+
+// Batch form: besides the batch fields it links a quota, a license and a request (the request holds the link to the batch).
+export async function saveBatch(input: Record<string, unknown>, id?: string) {
+  const { "Заявка": requestId, ...fields } = input;
+  const current = id ? await readOne("batches", id, ["ТоварId", "Страна", "КвотаId", "ЛицензияId"]) : {};
+  const pick = (name: string) => Object.hasOwn(fields, name) ? fields[name] : current[`${name}Id`] ?? current[name];
+  const product = pick("Товар"), country = pick("Страна");
+  let license = pick("Лицензия"), quota = pick("Квота");
+  let request: Record<string, unknown> | null = null;
+  if (requestId) {
+    request = await readOne("requests", String(requestId), ["Заявка", "ЛицензияId", "ПартияId", "ТоварId", "Страна"]);
+    if (request["ПартияId"] && request["ПартияId"] !== id) throw new Error(`Заявка ${String(request["Заявка"])} уже привязана к другой партии`);
+    if (!license) license = request["ЛицензияId"];
+    else if (request["ЛицензияId"] !== license) throw new Error("Заявка относится к другой лицензии");
+    sameScope(request, product, country, "Заявка");
+  }
+  if (license) {
+    const doc = await readOne("licenses", String(license), ["КвотаId", "ТоварId", "Страна"]);
+    if (!quota) quota = doc["КвотаId"];
+    else if (doc["КвотаId"] !== quota) throw new Error("Лицензия относится к другой квоте");
+    sameScope(doc, product, country, "Лицензия");
+  }
+  if (quota) sameScope(await readOne("quotas", String(quota), ["ТоварId", "Страна"]), product, country, "Квота");
+  const batchId = await saveRecord("batches", { ...fields, ...(license ? { "Лицензия": license } : {}), ...(quota ? { "Квота": quota } : {}) }, id);
+  if (Object.hasOwn(input, "Заявка")) {
+    for (const row of (await readTable("requests")).filter((r) => r["ПартияId"] === batchId && r.id !== requestId)) {
+      await update("requests", row.id, writable("requests", { "Партия": null }));
+    }
+    if (requestId && request?.["ПартияId"] !== batchId) await update("requests", String(requestId), writable("requests", { "Партия": batchId }));
+  }
+  return batchId;
 }

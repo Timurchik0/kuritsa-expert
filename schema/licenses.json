@@ -141,6 +141,41 @@
       "isLookup": null,
       "isComputed": true,
       "isMultipleCellValue": false
+    },
+    {
+      "id": "fldvmPovGpGXgnyir3G",
+      "name": "Товар",
+      "dbFieldName": "Tovar",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "manyOne",
+        "foreignTableId": "tbldSXhogjtsljJr8fJ",
+        "lookupFieldId": "fldgwEF1Kc3Ye6y0Ncx",
+        "isOneWay": true,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tbleXAnjiRfOof7fT2s",
+        "selfKeyName": "__id",
+        "foreignKeyName": "__fk_fldvmPovGpGXgnyir3G"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldFERl2zsMiTnGYoHm",
+      "name": "Страна",
+      "dbFieldName": "Strana",
+      "type": "singleSelect",
+      "description": null,
+      "options": [
+        "Китай",
+        "РФ"
+      ],
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
     }
   ]
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { CalcInfo } from "./calc-info";
-import type { Row } from "./actions";
 import { amount, supplierPaidSom } from "./finance";
 
 const formatted = (value: unknown, digits = 2) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: digits }).format(amount(value));
@@ -28,15 +27,16 @@ export function batchDetail(key: string, row: Record<string, unknown>) {
   return { ...info[key], source: `Партии: ${String(row["Номер партии"] ?? "новая партия")}` };
 }
 
-export function BatchCalculations({ row, form }: { row: Row | null; form: Record<string, unknown> }) {
-  const value = row ?? (() => {
+// recalculated from the form on every keystroke, the same formulas as the base (and the Excel sheet)
+export function BatchCalculations({ form }: { form: Record<string, unknown> }) {
+  const value = (() => {
     const paid = supplierPaidSom(form), kg = amount(form["Кг"]), cost = paid + ["Комиссия за перевод", "Банковские расходы", "Таможенная пошлина", "НДС и НсП", "Прочие по таможне", "Выгрузка / логистика"].reduce((sum, key) => sum + amount(form[key]), 0);
     const revenue = kg * amount(form["Цена продажи сом/кг"]), profit = revenue - cost, rate = amount(form["Курс $ для отчёта"]);
     const value = { ...form, "Стоимость товара, $": kg * amount(form["Цена $/кг"]), "Оплачено поставщику, сом": paid, "Себестоимость итого, сом": cost, "Себестоимость 1 кг, сом": kg ? cost / kg : 0, "Выручка, сом": revenue, "Прибыль, сом": profit, "Прибыль, $": rate ? profit / rate : 0, "Маржа, %": revenue ? profit / revenue * 100 : 0 };
     return { ...value, "Долг поставщику, $": form["Страна"] === "РФ" ? 0 : amount(value["Стоимость товара, $"]) - amount(form["Предоплата $"]) - amount(form["Постоплата $"]), "Аванс поставщику (в пути), сом": ["Предоплата", "В пути", "На таможне"].includes(String(form["Статус"])) ? paid : 0 };
   })();
-  return <aside className="h-fit rounded border border-[#dce7df] bg-[#f7faf7] p-4 lg:sticky lg:top-0"><h3 className="mb-4 text-sm font-semibold">Расчёт партии</h3>{!row && <div className="mb-3 text-xs text-[#718278]">Предварительный расчёт</div>}{["Долг поставщику, $", "Аванс поставщику (в пути), сом", ...keys].map((key) => {
-    const missingInputs = !row && ((["Долг поставщику, $", "Стоимость товара, $"].includes(key) && !amount(form["Цена $/кг"]) && form["Страна"] !== "РФ") || (["Себестоимость 1 кг, сом", "Выручка, сом", "Прибыль, сом", "Прибыль, $", "Маржа, %"].includes(key) && !amount(form["Кг"])) || (["Выручка, сом", "Прибыль, сом", "Прибыль, $", "Маржа, %"].includes(key) && !amount(form["Цена продажи сом/кг"])) || (key === "Прибыль, $" && !amount(form["Курс $ для отчёта"])));
+  return <aside className="h-fit rounded border border-[#dce7df] bg-[#f7faf7] p-4 lg:sticky lg:top-0"><h3 className="mb-4 text-sm font-semibold">Расчёт партии</h3><div className="mb-3 text-xs text-[#718278]">Обновляется при вводе</div>{["Долг поставщику, $", "Аванс поставщику (в пути), сом", ...keys].map((key) => {
+    const missingInputs = ((["Долг поставщику, $", "Стоимость товара, $"].includes(key) && !amount(form["Цена $/кг"]) && form["Страна"] !== "РФ") || (["Себестоимость 1 кг, сом", "Выручка, сом", "Прибыль, сом", "Прибыль, $", "Маржа, %"].includes(key) && !amount(form["Кг"])) || (["Выручка, сом", "Прибыль, сом", "Прибыль, $", "Маржа, %"].includes(key) && !amount(form["Цена продажи сом/кг"])) || (key === "Прибыль, $" && !amount(form["Курс $ для отчёта"])));
     return <div key={key} className="flex items-start justify-between gap-2 border-b border-[#e5ece7] py-2 text-xs last:border-0"><span className="min-w-0 text-[#738378]">{key}</span><span className="flex shrink-0 items-center gap-1 text-right font-semibold tabular-nums">{missingInputs ? "—" : key.includes("$") ? usd(value[key]) : key.includes("%") ? `${formatted(value[key])}%` : som(value[key])}<CalcInfo label={key} {...batchDetail(key, value)} /></span></div>;
   })}</aside>;
 }

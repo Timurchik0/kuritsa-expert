@@ -725,6 +725,63 @@
       "isLookup": null,
       "isComputed": null,
       "isMultipleCellValue": true
+    },
+    {
+      "id": "fldP9m0rnLCrDdYAUC6",
+      "name": "Квота",
+      "dbFieldName": "Kvota",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "manyOne",
+        "foreignTableId": "tblWBOkOTD4TSqEZJn5",
+        "lookupFieldId": "fldQ3RQACPlgonsyqQH",
+        "isOneWay": true,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblsv7z4tEvxYy3Zts1",
+        "selfKeyName": "__id",
+        "foreignKeyName": "__fk_fldP9m0rnLCrDdYAUC6"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldSnTj3RfkRY4pt2zs",
+      "name": "Лицензия",
+      "dbFieldName": "Licenziya",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "manyOne",
+        "foreignTableId": "tbleXAnjiRfOof7fT2s",
+        "lookupFieldId": "fldPas8o34uNhcUzc7o",
+        "isOneWay": true,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblsv7z4tEvxYy3Zts1",
+        "selfKeyName": "__id",
+        "foreignKeyName": "__fk_fldSnTj3RfkRY4pt2zs"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldP4aQaSRfyvxmObHu",
+      "name": "Логистика, сом/кг",
+      "dbFieldName": "Logistika_som_kg",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
     }
   ]
 }

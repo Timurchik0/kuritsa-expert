@@ -211,6 +211,21 @@
       "isLookup": null,
       "isComputed": true,
       "isMultipleCellValue": false
+    },
+    {
+      "id": "flds0c6PzetfOLSJDRh",
+      "name": "Страна",
+      "dbFieldName": "Strana",
+      "type": "singleSelect",
+      "description": null,
+      "options": [
+        "Китай",
+        "РФ"
+      ],
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
     }
   ]
 }

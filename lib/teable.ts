@@ -155,20 +155,21 @@ export async function signAttachments<T extends { path: string; token: string; m
  */
 export async function createRecords(
   tableId: string,
-  records: ICreateRecordsInput[]
+  records: ICreateRecordsInput[],
+  fieldKeyType: 'id' | 'name' = 'id'
 ): Promise<ICreateRecordsResponse> {
   if (!Array.isArray(records) || records.length === 0) {
     throw new Error('Records must be a non-empty array');
   }
   return request<ICreateRecordsResponse>(`/table/${tableId}/record`, {
     method: 'POST',
-    body: { fieldKeyType: 'id', typecast: true, records },
+    body: { fieldKeyType, typecast: true, records },
   });
 }
 
 /** Create a single record (convenience method) */
-export async function createRecord(tableId: string, fields: RecordFields): Promise<IRecord> {
-  const { records } = await createRecords(tableId, [{ fields }]);
+export async function createRecord(tableId: string, fields: RecordFields, fieldKeyType: 'id' | 'name' = 'id'): Promise<IRecord> {
+  const { records } = await createRecords(tableId, [{ fields }], fieldKeyType);
   return records[0];
 }
 
@@ -180,11 +181,12 @@ export async function createRecord(tableId: string, fields: RecordFields): Promi
 export async function updateRecord(
   tableId: string,
   recordId: string,
-  fields: RecordFields
+  fields: RecordFields,
+  fieldKeyType: 'id' | 'name' = 'id'
 ): Promise<IRecord> {
   return request<IRecord>(`/table/${tableId}/record/${recordId}`, {
     method: 'PATCH',
-    body: { fieldKeyType: 'id', typecast: true, record: { fields } },
+    body: { fieldKeyType, typecast: true, record: { fields } },
   });
 }
 

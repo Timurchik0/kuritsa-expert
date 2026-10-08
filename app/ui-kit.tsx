@@ -21,6 +21,15 @@ export const panel = "rounded-md border border-[#e1e7e4] bg-white";
 export const th = "px-3 py-3 text-left text-xs font-medium text-[#839188]";
 export const td = "px-3 py-2.5 text-sm";
 
+// rows of one batch number (one truck / one RF delivery) stay together, in the order they come
+export function groupByNumber(rows: Row[]) {
+  const groups = new Map<string, Row[]>();
+  for (const row of rows) { const key = text(row["Номер партии"]).trim() || row.id; groups.set(key, [...(groups.get(key) ?? []), row]); }
+  return [...groups.values()];
+}
+
+export const kinds = (count: number) => `${count} ${count % 10 === 1 && count % 100 !== 11 ? "вид" : [2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100) ? "вида" : "видов"} товара`;
+
 export type Choice = { value: string; title: string; group?: string };
 
 export function SearchSelect({ name, value, onChange, items, required, className = "", placeholder = "Выберите..." }: { name: string; value: unknown; onChange: (v: string) => void; items: Choice[]; required?: boolean; className?: string; placeholder?: string }) {
