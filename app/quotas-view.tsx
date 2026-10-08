@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CalcInfo } from "./calc-info";
 import type { Dataset, Row, TableKey } from "./actions";
-import { Progress, SearchSelect, Segmented, date, fmt, labelOf, n, panel, text, uiInput } from "./ui-kit";
+import { Progress, SearchSelect, date, fmt, labelOf, n, panel, text, uiInput } from "./ui-kit";
 
 type Kind = "quotas" | "licenses" | "requests";
 type Form = Record<string, unknown>;
@@ -19,8 +19,8 @@ export default function QuotasView({ data, busy, onCreate }: { data: Dataset; bu
   const [open, setOpen] = useState<Set<string>>(() => new Set(data.quotas.map((q) => q.id)));
   const [modal, setModal] = useState<{ kind: Kind; parent?: Row } | null>(null);
   const [form, setForm] = useState<Form>({});
-  // split by country like the «Поставщики» section; a quota without a country shows on both tabs
-  const [country, setCountry] = useState<"Китай" | "РФ">("Китай");
+  // quotas and licenses exist only for imports from China (RF goes without them)
+  const country = "Китай";
   const quotas = data.quotas.filter((q) => !q["Страна"] || q["Страна"] === country);
   const licensesOf = (q: Row) => data.licenses.filter((l) => l["КвотаId"] === q.id).sort((a, b) => text(a["Лицензия"]).localeCompare(text(b["Лицензия"]), "ru", { numeric: true }));
   const requestsOf = (l: Row) => data.requests.filter((r) => r["ЛицензияId"] === l.id).sort((a, b) => text(a["Заявка"]).localeCompare(text(b["Заявка"]), "ru", { numeric: true }));
@@ -59,12 +59,11 @@ export default function QuotasView({ data, busy, onCreate }: { data: Dataset; bu
   const all = quotas.map(quotaTotals);
   const total = { volume: quotas.reduce((s, q) => s + n(q["Объём, кг"]), 0), requested: all.reduce((s, t) => s + t.requested, 0) };
   return <>
-    <div className="mb-4"><Segmented<"Китай" | "РФ"> value={country} onChange={setCountry} items={[{ value: "Китай", title: "Китай" }, { value: "РФ", title: "РФ" }]} /></div>
     <div className="mb-5 grid gap-3 sm:grid-cols-3">{[
-      { label: "Объём квот", value: total.volume, formula: "Σ «Объём, кг» всех квот", sub: `${quotas.length} квот (${country}) = ${kg(total.volume)}` },
+      { label: "Объём квот", value: total.volume, formula: "Σ «Объём, кг» всех квот", sub: `${quotas.length} квот = ${kg(total.volume)}` },
       { label: "Заявлено", value: total.requested, formula: "Σ «Объём, кг» всех заявок во всех лицензиях", sub: `${all.reduce((s, t) => s + t.ls.reduce((c, l) => c + requestsOf(l).length, 0), 0)} заявок = ${kg(total.requested)}` },
       { label: "Остаток по заявкам", value: total.volume - total.requested, formula: "Объём квот − заявлено", sub: `${kg(total.volume)} − ${kg(total.requested)} = ${kg(total.volume - total.requested)}` },
-    ].map((t) => <div key={t.label} className={`${panel} p-4`}><div className="flex items-center justify-between gap-2 text-xs text-[#718278]">{t.label}<CalcInfo label={t.label} formula={t.formula} substitution={t.sub} source={`Квоты, Лицензии, Заявки · ${country}`} excel="В Excel квот нет — учёт по описанию клиента" /></div><div className="mt-3 text-lg font-semibold tabular-nums">{kg(t.value)}</div></div>)}</div>
+    ].map((t) => <div key={t.label} className={`${panel} p-4`}><div className="flex items-center justify-between gap-2 text-xs text-[#718278]">{t.label}<CalcInfo label={t.label} formula={t.formula} substitution={t.sub} source="Квоты, Лицензии, Заявки (Китай)" excel="В Excel квот нет — учёт по описанию клиента" /></div><div className="mt-3 text-lg font-semibold tabular-nums">{kg(t.value)}</div></div>)}</div>
     <div className="mb-3 flex justify-end"><Button size="sm" className="bg-[#147d6e] hover:bg-[#10675b]" disabled={busy} onClick={() => start("quotas")}><Plus size={15} /> Новая квота</Button></div>
     <div className="space-y-3">{quotas.map((q) => { const t = quotaTotals(q); const isOpen = open.has(q.id); return <div key={q.id} className={panel}>
       <div className="flex flex-wrap items-center gap-3 px-4 py-3">
@@ -77,7 +76,7 @@ export default function QuotasView({ data, busy, onCreate }: { data: Dataset; bu
         <div className="mb-1 flex justify-between text-xs"><span className="text-[#7d8b83]">Заявлено {kg(req)}</span><span className="inline-flex items-center gap-1">Остаток <b className="tabular-nums">{kg(left)}</b><CalcInfo label="Остаток лицензии" formula="Объём лицензии − Σ объёмов её заявок" substitution={`${kg(l["Объём, кг"])} − ${kg(req)} = ${kg(left)}`} source={`Лицензия ${text(l["Лицензия"])}`} excel="В Excel квот нет" /></span></div><Progress value={req} max={n(l["Объём, кг"])} tone="#5e9eb2" />
         {requestsOf(l).length > 0 && <table className="mt-3 w-full text-xs"><thead className="text-[#8b998f]"><tr><th className="py-1 text-left font-medium">Заявка</th><th className="py-1 text-left font-medium">Дата</th><th className="py-1 text-left font-medium">Товар</th><th className="py-1 text-right font-medium">Объём</th><th className="py-1 text-left font-medium pl-3">Партия</th><th className="py-1 text-left font-medium">Машина</th><th className="py-1 text-left font-medium">Статус</th></tr></thead><tbody>{requestsOf(l).map((r) => <tr key={r.id} className="border-t border-[#eef2ef]"><td className="py-1.5 font-medium">{text(r["Заявка"])}</td><td className="py-1.5 text-[#7d8b83]">{date(r["Дата"])}</td><td className="py-1.5 text-[#6e7e74]">{labelOf(data.products, r["ТоварId"])}</td><td className="py-1.5 text-right tabular-nums">{kg(r["Объём, кг"])}</td><td className="py-1.5 pl-3">{r["ПартияId"] ? labelOf(data.batches, r["ПартияId"], "Партия") : "—"}</td><td className="py-1.5 text-[#6e7e74]">{text(r["Номер машины"]) || "—"}</td><td className="py-1.5"><Badge variant="outline" className="text-[10px]">{text(r["Статус"]) || "—"}</Badge></td></tr>)}</tbody></table>}
       </div>; })}</div> : <div className="py-3 text-center text-xs text-[#86958b]">В квоте пока нет лицензий</div>}{text(q["Комментарий"]) && <div className="mt-3 text-[11px] text-[#8b998f]">{text(q["Комментарий"])}</div>}</div>}
-    </div>; })}{!quotas.length && <div className={`${panel} p-8 text-center text-sm text-[#86958b]`}>Квот по стране «{country}» пока нет</div>}</div>
+    </div>; })}{!quotas.length && <div className={`${panel} p-8 text-center text-sm text-[#86958b]`}>Квот пока нет</div>}</div>
 
     <Dialog open={Boolean(modal)} onOpenChange={(v) => { if (!v) setModal(null); }}><DialogContent className="sm:max-w-[560px]"><DialogHeader><DialogTitle>{modal?.kind === "quotas" ? "Новая квота" : modal?.kind === "licenses" ? `Новая лицензия · ${text(modal.parent?.["Квота"])}` : `Новая заявка · ${text(modal?.parent?.["Лицензия"])}`}</DialogTitle><DialogDescription>{modal?.kind === "licenses" && modal.parent ? `Не распределено в квоте: ${kg(quotaTotals(modal.parent).notDistributed)}` : modal?.kind === "requests" && modal.parent ? `Остаток лицензии: ${kg(n(modal.parent["Объём, кг"]) - requestedOf(modal.parent))}` : "Объём в килограммах"}</DialogDescription></DialogHeader>
       <form className="grid gap-3 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); submit(); }}>
@@ -85,7 +84,6 @@ export default function QuotasView({ data, busy, onCreate }: { data: Dataset; bu
         <label className="flex flex-col gap-1.5 text-xs font-medium text-[#65746e]">Объём, кг *<input className={uiInput} type="number" min={0} step="any" value={text(form["Объём, кг"])} onChange={(e) => set("Объём, кг", e.target.value)} /></label>
         <label className="flex flex-col gap-1.5 text-xs font-medium text-[#65746e]">Дата<input className={uiInput} type="date" value={text(form["Дата"])} onChange={(e) => set("Дата", e.target.value)} /></label>
         {modal?.kind === "quotas" && <><label className="flex flex-col gap-1.5 text-xs font-medium text-[#65746e]">Период<input className={uiInput} value={text(form["Период"])} onChange={(e) => set("Период", e.target.value)} /></label><div className="flex flex-col gap-1.5 text-xs font-medium text-[#65746e]">Юрлицо<SearchSelect name="Юрлицо" value={form["Юрлицо"]} onChange={(v) => set("Юрлицо", v)} items={data.entities.map((x) => ({ value: x.id, title: text(x["Название"]) }))} /></div><div className="flex flex-col gap-1.5 text-xs font-medium text-[#65746e]">Товар<SearchSelect name="Товар" value={form["Товар"]} onChange={(v) => set("Товар", v)} items={data.products.map((x) => ({ value: x.id, title: text(x["Название"]) }))} /></div></>}
-        <div className="flex flex-col gap-1.5 text-xs font-medium text-[#65746e]">Страна<SearchSelect name="Страна" required value={form["Страна"]} onChange={(v) => set("Страна", v)} items={["Китай", "РФ"].map((v) => ({ value: v, title: v }))} /></div>
         {modal?.kind !== "quotas" && <div className="flex flex-col gap-1.5 text-xs font-medium text-[#65746e]">Вид товара<SearchSelect name="Вид товара" value={form["Товар"]} onChange={(v) => set("Товар", v)} items={data.products.map((x) => ({ value: x.id, title: text(x["Название"]) }))} /></div>}
         {modal?.kind === "requests" && <><label className="flex flex-col gap-1.5 text-xs font-medium text-[#65746e]">Номер машины<input className={uiInput} value={text(form["Номер машины"])} onChange={(e) => set("Номер машины", e.target.value)} /></label><div className="flex flex-col gap-1.5 text-xs font-medium text-[#65746e]">Партия<SearchSelect name="Партия" value={form["Партия"]} onChange={(v) => set("Партия", v)} items={data.batches.filter((x) => (!form["Товар"] || x["ТоварId"] === form["Товар"]) && (!form["Страна"] || x["Страна"] === form["Страна"])).map((x) => ({ value: x.id, title: text(x["Партия"]) }))} /></div><div className="flex flex-col gap-1.5 text-xs font-medium text-[#65746e]">Статус<SearchSelect name="Статус" required value={form["Статус"]} onChange={(v) => set("Статус", v)} items={["Открыта", "Исполнена", "Отменена"].map((v) => ({ value: v, title: v }))} /></div></>}
         <label className="flex flex-col gap-1.5 text-xs font-medium text-[#65746e] sm:col-span-2">Комментарий<textarea className={`${uiInput} min-h-16 py-2`} value={text(form["Комментарий"])} onChange={(e) => set("Комментарий", e.target.value)} /></label>

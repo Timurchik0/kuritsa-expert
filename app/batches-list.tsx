@@ -15,7 +15,6 @@ const stageTone: Record<string, string> = { "Предоплата": "text-[#a077
 export default function BatchesList({ data, stages, onOpen, onAddProduct }: { data: Dataset; stages: string[]; onOpen: (row: Row) => void; onAddProduct: (row: Row) => void }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
-  const [country, setCountry] = useState("");
   const [dateField, setDateField] = useState("Дата прибытия");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -24,7 +23,7 @@ export default function BatchesList({ data, stages, onOpen, onAddProduct }: { da
   const [page, setPage] = useState(0);
   const q = search.toLocaleLowerCase("ru");
   const num = (row: Row) => parseInt(text(row["Номер партии"]).replace(/\D+/g, ""), 10) || 0;
-  const rows = data.batches.filter((b) => (!status || b["Статус"] === status) && (!country || b["Страна"] === country) && inPeriod(b[dateField], from, to)
+  const rows = data.batches.filter((b) => (!status || b["Статус"] === status) && inPeriod(b[dateField], from, to)
     && (!q || [text(b["Партия"]), text(b["Импортёр"]), text(b["Номер фуры"]), labelOf(data.products, b["ТоварId"])].join(" ").toLocaleLowerCase("ru").includes(q)))
     .sort((a, b) => {
       const d = sortBy === "number" ? num(a) - num(b) : sortBy === "profit" ? n(a["Прибыль, сом"]) - n(b["Прибыль, сом"]) : sortBy === "kg" ? n(a["Кг"]) - n(b["Кг"]) : text(a[dateField]).localeCompare(text(b[dateField]));
@@ -50,7 +49,6 @@ export default function BatchesList({ data, stages, onOpen, onAddProduct }: { da
     <div className="mb-3 flex flex-wrap items-center gap-2">
       <div className="relative min-w-[200px] flex-1 md:max-w-xs"><Search size={16} className="absolute left-3 top-2.5 text-[#95a39a]" /><Input className="pl-9" placeholder="Поиск: партия, товар, импортёр, фура" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} /></div>
       <SearchSelect name="Статус" value={status} onChange={(v) => { setStatus(v); setPage(0); }} items={stages.map((v) => ({ value: v, title: v }))} placeholder="Все статусы" className="w-40" />
-      <SearchSelect name="Страна" value={country} onChange={(v) => { setCountry(v); setPage(0); }} items={["Китай", "РФ"].map((v) => ({ value: v, title: v }))} placeholder="Китай и РФ" className="w-32" />
       <SearchSelect name="Дата для периода" required value={dateField} onChange={setDateField} items={["Дата предоплаты", "Дата постоплаты", "Дата прибытия"].map((v) => ({ value: v, title: v }))} className="w-44" />
       <PeriodInputs from={from} to={to} onFrom={(v) => { setFrom(v); setPage(0); }} onTo={(v) => { setTo(v); setPage(0); }} />
       <SearchSelect name="Сортировка" required value={sortBy} onChange={setSortBy} items={[{ value: "date", title: "По дате" }, { value: "number", title: "По номеру" }, { value: "profit", title: "По прибыли" }, { value: "kg", title: "По весу" }]} className="w-36" />
