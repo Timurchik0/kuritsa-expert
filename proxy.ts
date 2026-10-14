@@ -1,21 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { SESSION_COOKIE, authEnabled, readSession } from "./lib/auth";
 
-// Password gate for the whole app (HTTP Basic Auth). Any username, password = APP_PASSWORD.
-// If APP_PASSWORD is not set (local dev), the app stays open.
-export function proxy(request: NextRequest) {
-  const password = process.env.APP_PASSWORD;
-  if (!password) return NextResponse.next();
-
-  const header = request.headers.get("authorization") ?? "";
-  if (header.startsWith("Basic ")) {
-    const decoded = atob(header.slice(6));
-    const given = decoded.slice(decoded.indexOf(":") + 1);
-    if (given === password) return NextResponse.next();
-  }
-  return new NextResponse("Требуется вход", {
-    status: 401,
-    headers: { "WWW-Authenticate": 'Basic realm="Kuritsa Expert", charset="UTF-8"' },
-  });
+// Every page needs a signed-in user (see lib/auth.ts); without APP_USERS / APP_PASSWORD (local dev) the app stays open.
+export async function proxy(request: NextRequest) {
+  if (!authEnabled() || request.nextUrl.pathname === "/login") return NextResponse.next();
+  if (await readSession(request.cookies.get(SESSION_COOKIE)?.value)) return NextResponse.next();
+  const login = new URL("/login", request.url);
+  if (request.nextUrl.pathname !== "/") login.searchParams.set("next", request.nextUrl.pathname);
+  return NextResponse.redirect(login);
 }
 
 export const config = {

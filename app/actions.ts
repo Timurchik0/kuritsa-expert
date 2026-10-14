@@ -16,6 +16,8 @@ import quotas from "@/schema/quotas.json";
 import licenses from "@/schema/licenses.json";
 import requests from "@/schema/requests.json";
 import snapshots from "@/schema/snapshots.json";
+import audit from "@/schema/audit.json";
+import { currentUser } from "@/lib/session";
 import { calculateSummary } from "./finance";
 
 const schemas = { products, accounts, contacts, batches, movements, payments, taxes, reconciliations, settings, entities, quotas, licenses, requests, snapshots } as const;
@@ -28,16 +30,63 @@ type Field = { id: string; name: string; dbFieldName: string; type: string; opti
 // The same code can serve a copy of the base (e.g. the clean stand): table ids are resolved by table name
 // when TEABLE_BASE_ID differs from the base the schema was generated from, and writes go by field name.
 let tableIds: Promise<Record<string, string>> | null = null;
-async function tableId(key: TableKey) {
+async function resolveTable(schema: { id: string; name: string; dbTableName: string }) {
   const base = process.env.TEABLE_BASE_ID;
-  if (!base || schemas[key].dbTableName.startsWith(`${base}.`)) return schemas[key].id;
+  if (!base || schema.dbTableName.startsWith(`${base}.`)) return schema.id;
   tableIds ??= request<{ id: string; name: string }[]>(`/base/${base}/table`).then((list) => Object.fromEntries(list.map((t) => [t.name, t.id])));
   const ids = await tableIds.catch((error) => { tableIds = null; throw error; });
-  if (!ids[schemas[key].name]) throw new Error(`В базе нет таблицы «${schemas[key].name}»`);
-  return ids[schemas[key].name];
+  if (!ids[schema.name]) throw new Error(`В базе нет таблицы «${schema.name}»`);
+  return ids[schema.name];
 }
-const create = async (key: TableKey, fields: RecordFields) => createRecord(await tableId(key), fields, "name");
-const update = async (key: TableKey, id: string, fields: RecordFields) => updateRecord(await tableId(key), id, fields, "name");
+const tableId = (key: TableKey) => resolveTable(schemas[key]);
+
+// ── Журнал действий: every create / update / delete made through the app is logged with the signed-in user ──
+const TITLE: Partial<Record<TableKey, string>> = { batches: "Партия", movements: "Операция", payments: "Операция", taxes: "Основание", reconciliations: "Партии в своде", settings: "Параметр", quotas: "Квота", licenses: "Лицензия", requests: "Заявка", snapshots: "Снимок" };
+const shown = (value: unknown): string => value == null || value === "" ? "—"
+  : Array.isArray(value) ? value.map(shown).join(", ")
+  : typeof value === "object" ? String((value as { title?: unknown; id?: unknown }).title ?? (value as { id?: unknown }).id ?? "")
+  : typeof value === "boolean" ? (value ? "да" : "нет")
+  : typeof value === "number" ? new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(value)
+  : /^\d{4}-\d{2}-\d{2}T/.test(String(value)) ? new Intl.DateTimeFormat("ru-RU", { timeZone: "Asia/Bishkek", day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(String(value)))
+  : String(value);
+function titleOf(key: TableKey, fields: Record<string, unknown>) {
+  const own = fields[TITLE[key] ?? "Название"];
+  if (own) return shown(own);
+  if (key === "batches") return `${shown(fields["Номер партии"])} · ${shown(fields["Товар"])}`;
+  if (key === "movements") return `${shown(fields["Дата"])} · ${shown(fields["Тип"])} · ${shown(fields["Кг"])} кг`;
+  if (key === "payments") return `${shown(fields["Дата"])} · ${shown(fields["Направление"])} · ${shown(fields["Сумма"])}`;
+  return schemas[key].name;
+}
+async function log(action: "Создание" | "Изменение" | "Удаление", key: TableKey, id: string, title: string, changes: string) {
+  try {
+    await createRecord(await resolveTable(audit), { "Запись": title.slice(0, 250), "Время": new Date().toISOString(), "Пользователь": await currentUser(), "Действие": action, "Раздел": schemas[key].name, "ID записи": id, "Изменения": changes.slice(0, 10000) }, "name");
+  } catch (error) { console.error("Журнал действий: запись не создана", error); }
+}
+async function create(key: TableKey, fields: RecordFields) {
+  const record = await createRecord(await tableId(key), fields, "name");
+  const after = (record.fields ?? {}) as Record<string, unknown>;
+  const filled = Object.keys(fields).filter((name) => fields[name] != null && fields[name] !== "");
+  await log("Создание", key, record.id, titleOf(key, { ...fields, ...after }), filled.map((name) => `${name}: ${shown(after[name] ?? fields[name])}`).join("\n"));
+  return record;
+}
+async function update(key: TableKey, id: string, fields: RecordFields) {
+  const table = await tableId(key);
+  const before = ((await getRecord(table, id))?.fields ?? {}) as Record<string, unknown>;
+  const record = await updateRecord(table, id, fields, "name");
+  const after = (record.fields ?? {}) as Record<string, unknown>;
+  const changes = Object.keys(fields).filter((name) => shown(before[name]) !== shown(after[name] ?? fields[name])).map((name) => `${name}: ${shown(before[name])} → ${shown(after[name] ?? fields[name])}`);
+  if (changes.length) await log("Изменение", key, id, titleOf(key, { ...before, ...after }), changes.join("\n"));
+  return record;
+}
+
+export type AuditRow = { id: string; time: string; user: string; action: string; section: string; title: string; recordId: string; changes: string };
+export async function loadAudit(): Promise<AuditRow[]> {
+  const records = await listRecords(await resolveTable(audit));
+  return records.map((r) => {
+    const f = r.fields as Record<string, unknown>;
+    return { id: r.id, time: String(f["Время"] ?? ""), user: String(f["Пользователь"] ?? ""), action: String(f["Действие"] ?? ""), section: String(f["Раздел"] ?? ""), title: String(f["Запись"] ?? ""), recordId: String(f["ID записи"] ?? ""), changes: String(f["Изменения"] ?? "") };
+  }).sort((a, b) => b.time.localeCompare(a.time));
+}
 const fields = (key: TableKey) => schemas[key].fields as Field[];
 const field = (key: TableKey, name: string) => fields(key).find((f) => f.name === name);
 const num = (v: unknown) => Number(v) || 0;
@@ -165,9 +214,12 @@ async function readOne(key: TableKey, id: string, names: string[]) {
 // Tablox does not recompute parent rollups when a linked record is deleted — only when links change.
 // So links are cleared first (parents recompute), then the record is deleted.
 async function deleteRecordSafe(key: TableKey, id: string) {
+  const table = await tableId(key);
+  const before = ((await getRecord(table, recId(id)))?.fields ?? {}) as Record<string, unknown>;
   const own = fields(key).filter(isOwnLink);
-  if (own.length) await update(key, recId(id), Object.fromEntries(own.map((f) => [f.name, null])));
-  await deleteRecord(await tableId(key), recId(id));
+  if (own.length) await updateRecord(table, recId(id), Object.fromEntries(own.map((f) => [f.name, null])), "name");
+  await deleteRecord(table, recId(id));
+  await log("Удаление", key, id, titleOf(key, before), Object.entries(before).filter(([, v]) => v != null && v !== "" && !Array.isArray(v)).map(([name, v]) => `${name}: ${shown(v)}`).join("\n"));
 }
 
 // a quota / license / request covers one product and one country; a child must not contradict its parent

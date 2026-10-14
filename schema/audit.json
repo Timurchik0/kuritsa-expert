@@ -1,0 +1,102 @@
+{
+  "id": "tbleWM4O8D0eZ0md3Ii",
+  "name": "Журнал действий",
+  "description": null,
+  "dbTableName": "bseNgKMy9d3MkxwlAjk.tbleWM4O8D0eZ0md3Ii",
+  "fields": [
+    {
+      "id": "fldXzAwaCgfk5wyn9OT",
+      "name": "Запись",
+      "dbFieldName": "Zapis",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldYrHGjIU5V7hJnoWM",
+      "name": "Время",
+      "dbFieldName": "Vremya",
+      "type": "date",
+      "description": null,
+      "options": {
+        "formatting": {
+          "date": "DD.MM.YYYY",
+          "time": "HH:mm",
+          "timeZone": "Asia/Bishkek"
+        }
+      },
+      "cellValueType": "dateTime",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldbjh0pmz1WbJUiKnn",
+      "name": "Пользователь",
+      "dbFieldName": "Polzovatel",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldP2iam589Zrjw1aku",
+      "name": "Действие",
+      "dbFieldName": "Deystvie",
+      "type": "singleSelect",
+      "description": null,
+      "options": [
+        "Создание",
+        "Изменение",
+        "Удаление"
+      ],
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldtlsMnlTuKp1iOoqA",
+      "name": "Раздел",
+      "dbFieldName": "Razdel",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldIDGM2siqAiGW7ORV",
+      "name": "ID записи",
+      "dbFieldName": "ID_zapisi",
+      "type": "singleLineText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldpgV8GGLkKukQwO13",
+      "name": "Изменения",
+      "dbFieldName": "Izmeneniya",
+      "type": "longText",
+      "description": null,
+      "options": {},
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    }
+  ]
+}

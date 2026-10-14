@@ -21,12 +21,18 @@ export function calculateSummary(data: Dataset) {
   const partners = sumContacts("Партнёр");
   const borrowers = sumContacts("Заёмщик");
   const others = sumContacts("Прочее");
-  const counterparts = clientsOwe + clientAdvances + partners + borrowers + others;
-  const inTransit = data.batches.filter((row) => ["Предоплата", "В пути", "На таможне"].includes(String(row["Статус"])))
-    .reduce((sum, row) => sum + amount(row["Аванс поставщику (в пути), сом"]), 0);
+  // loans given (Заёмщик) belong to «Итого займов», like in the client's sheet; not to the counterparts
+  const counterparts = clientsOwe + clientAdvances + partners + others;
+  // goods paid but not received: the supplier's balance (opening prepayment + advances of its batches in transit)
+  // plus advances of in-transit batches that have no supplier set
+  const transitBatches = data.batches.filter((row) => ["Предоплата", "В пути", "На таможне"].includes(String(row["Статус"])));
+  const unlinkedTransit = transitBatches.filter((row) => !row["ПоставщикId"]).reduce((sum, row) => sum + amount(row["Аванс поставщику (в пути), сом"]), 0);
+  const suppliers = sumContacts("Поставщик");
+  const inTransit = suppliers + unlinkedTransit;
   const stock = data.products.reduce((sum, row) => sum + amount(row["Стоимость остатка, сом"]), 0);
   const turnover = accounts + counterparts + inTransit + stock;
-  const loans = sumContacts("Займодавец");
+  const lenders = sumContacts("Займодавец");
+  const loans = lenders + borrowers;
   const capital = turnover + loans;
   const taxes = data.taxes.reduce((sum, row) => sum + amount(row["Остаток к уплате, сом"]), 0);
   const rate = setting(data, REPORT_RATE);
@@ -36,7 +42,7 @@ export function calculateSummary(data: Dataset) {
   const soldRevenue = sold.reduce((sum, row) => sum + amount(row["Выручка, сом"]), 0);
   return {
     accounts, clientsOwe, clientAdvances, partners, borrowers, others, counterparts,
-    inTransit, stock, turnover, loans, capital, taxes, rate,
+    inTransit, suppliers, unlinkedTransit, lenders, stock, turnover, loans, capital, taxes, rate,
     turnoverUsd: rate && rate > 0 ? turnover / rate : null,
     capitalUsd: rate && rate > 0 ? capital / rate : null,
     realUsd: rate && rate > 0 ? (capital - taxes) / rate : null,

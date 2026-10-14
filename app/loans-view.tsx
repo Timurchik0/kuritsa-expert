@@ -23,7 +23,7 @@ export default function LoansView({ data, onPayment }: { data: Dataset; onPaymen
   const q = search.toLocaleLowerCase("ru");
   const rows = loans.filter((c) => (status === "all" || loanStatus(c) === status) && (!q || `${text(c["Название"])} ${text(c["Комментарий"])}`.toLocaleLowerCase("ru").includes(q)))
     .sort((a, b) => Math.abs(n(b["Баланс"])) - Math.abs(n(a["Баланс"])));
-  const net = loans.filter((c) => c["Тип"] === "Займодавец").reduce((s, c) => s + n(c["Баланс"]), 0);
+  const net = loans.reduce((s, c) => s + n(c["Баланс"]), 0);
   const lent = loans.filter((c) => c["Тип"] === "Заёмщик").reduce((s, c) => s + n(c["Баланс"]), 0);
   const weOwe = loans.filter((c) => n(c["Баланс"]) < 0).reduce((s, c) => s + n(c["Баланс"]), 0);
   const oweUs = loans.filter((c) => n(c["Баланс"]) > 0).reduce((s, c) => s + n(c["Баланс"]), 0);
@@ -32,8 +32,8 @@ export default function LoansView({ data, onPayment }: { data: Dataset; onPaymen
   const runningAfter = ops.reduce<number[]>((acc, r) => [...acc, (acc.length ? acc[acc.length - 1] : active ? n(active["Сальдо на начало"]) : 0) + n(r["Влияние на долг"])], []);
 
   const tiles = [
-    { label: "Займы нетто (как в сводке)", value: net, formula: "Σ балансов займодавцев: «+» нам должны, «−» мы должны. Выданные займы (заёмщики) в Excel считаются в «остатке у контрагентов», поэтому сюда не входят", excel: "баланс денег!B16 (с обратным знаком)" },
-    { label: "Выданные займы (заёмщики)", value: lent, formula: "Σ балансов контрагентов типа «Заёмщик»; в сводке входят в «Остаток у контрагентов»", excel: "лист «Займ Жолдошбек»!H2 (входит в D5)" },
+    { label: "Займы нетто (как в сводке)", value: net, formula: "Σ балансов займодавцев и заёмщиков: «+» нам должны, «−» мы должны", excel: "баланс денег!B16 / «Итого займов» с обратным знаком" },
+    { label: "Выданные займы (заёмщики)", value: lent, formula: "Σ балансов контрагентов типа «Заёмщик»; в сводке входят в «Займы (нетто)»", excel: "лист «Займ Жолдошбек»!H2 (входит в D5)" },
     { label: "Мы должны", value: weOwe, formula: "Σ отрицательных балансов займов (полученные займы, кредит банка)", excel: "баланс денег: займы со знаком «+»" },
     { label: "Должны нам", value: oweUs, formula: "Σ положительных балансов (выданные займы, деньги у ИП Мырзабеков)", excel: "баланс денег: займы со знаком «−» и лист «Займ Жолдошбек»" },
   ];
