@@ -10,9 +10,9 @@ import { amount, type calculateSummary } from "./finance";
 // Drill-down of a summary metric: the formula in words and every record that adds up to the number.
 export type DrillKey = "accounts" | "counterparts" | "inTransit" | "stock" | "turnover" | "loans" | "capital" | "taxes" | "real";
 type Summary = ReturnType<typeof calculateSummary>;
-type Line = { key: string; cells: string[]; value: number; muted?: boolean; open?: () => void };
-type Group = { title: string; columns: string[]; lines: Line[]; total?: number; note?: string };
-type Drill = { title: string; value: string; formula: string; groups: Group[]; total: number; excel: string };
+export type Line = { key: string; cells: string[]; value: number; muted?: boolean; open?: () => void };
+export type Group = { title: string; columns: string[]; lines: Line[]; total?: number; note?: string };
+export type Drill = { title: string; value: string; formula: string; groups: Group[]; total: number; excel: string };
 
 const fmt = (value: unknown, digits = 0) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: digits, minimumFractionDigits: digits }).format(amount(value));
 const som = (value: unknown, digits = 0) => `${fmt(value, digits)} сом`;
@@ -81,9 +81,9 @@ export function SummaryDrill({ drill, onClose }: { drill: Drill | null; onClose:
         <SheetHeader className="border-b bg-white px-6 py-5"><SheetTitle className="text-lg">{drill.title}</SheetTitle><SheetDescription className="text-2xl font-semibold tabular-nums text-[#1b352b]">{drill.value}</SheetDescription></SheetHeader>
         <div className="space-y-5 px-6 py-5">
           <div className="rounded-md border border-[#dce7df] bg-white p-4 text-sm"><div className="mb-1 text-xs font-medium text-[#718278]">Как считается</div><div className="text-[#2f453b]">{drill.formula}</div><div className="mt-2 text-[11px] text-[#8b998f]">В таблице клиента: {drill.excel}</div></div>
-          {many && <div className="relative"><Search size={16} className="absolute left-3 top-2.5 text-[#95a39a]" /><Input className="bg-white pl-9" placeholder="Поиск по названию" value={search} onChange={(e) => setSearch(e.target.value)} /></div>}
-          {drill.groups.filter((g) => g.lines.length || drill.groups.every((x) => !x.lines.length)).map((g) => { const lines = g.lines.filter((l) => !q || l.cells[0].toLocaleLowerCase("ru").includes(q)); return <section key={g.title} className="rounded-md border border-[#e1e7e4] bg-white">
-            <div className="flex items-center justify-between gap-3 border-b px-4 py-3"><div><div className="text-sm font-semibold">{g.title}</div>{g.note && <div className="text-[11px] text-[#8b998f]">{g.note}</div>}</div><div className="text-right text-sm font-semibold tabular-nums">{g.lines.length} · {som(g.total, 2)}</div></div>
+          {many && <div className="relative"><Search size={16} className="absolute left-3 top-2.5 text-[#95a39a]" /><Input className="bg-white pl-9" placeholder="Поиск по строкам" value={search} onChange={(e) => setSearch(e.target.value)} /></div>}
+          {drill.groups.filter((g) => g.lines.length || drill.groups.every((x) => !x.lines.length)).map((g) => { const lines = g.lines.filter((l) => !q || l.cells.join(" ").toLocaleLowerCase("ru").includes(q)); return <section key={g.title} className="rounded-md border border-[#e1e7e4] bg-white">
+            <div className="flex items-center justify-between gap-3 border-b px-4 py-3"><div><div className="text-sm font-semibold">{g.title}</div>{g.note && <div className="text-[11px] text-[#8b998f]">{g.note}</div>}</div><div className="text-right text-sm font-semibold tabular-nums">{g.lines.length} · {som(g.total ?? g.lines.reduce((sum, l) => sum + l.value, 0), 2)}</div></div>
             {lines.length ? <div className="overflow-x-auto"><table className="w-full min-w-[560px] text-sm"><thead className="bg-[#fbfcfb] text-xs text-[#839188]"><tr>{g.columns.map((c, i) => <th key={c} className={`px-3 py-2 font-medium ${i ? "text-right" : "text-left"}`}>{c}</th>)}<th className="w-6" /></tr></thead>
               <tbody>{lines.map((l) => <tr key={l.key} onClick={l.open} className={`border-t ${l.open ? "cursor-pointer hover:bg-[#f5faf7]" : ""} ${l.muted ? "text-[#9aa79f]" : ""}`}>{l.cells.map((c, i) => <td key={i} className={`px-3 py-2 ${i ? "whitespace-nowrap text-right tabular-nums" : ""} ${i === l.cells.length - 1 ? "font-semibold" : ""}`}>{c}</td>)}<td className="pr-2 text-[#9aaba2]">{l.open && <ChevronRight size={14} />}</td></tr>)}</tbody></table></div>
               : <div className="px-4 py-5 text-center text-xs text-[#86958b]">{g.lines.length ? "Ничего не найдено" : "Нет записей"}</div>}

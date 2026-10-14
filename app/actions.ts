@@ -79,6 +79,14 @@ async function update(key: TableKey, id: string, fields: RecordFields) {
   return record;
 }
 
+/** The source file attached to a balance snapshot (served by /api/snapshot-file/[id] under its own name). */
+export async function snapshotAttachment(id: string): Promise<{ name: string; mimetype: string; url: string } | null> {
+  const record = await getRecord(await tableId("snapshots"), recId(id));
+  const files = record?.fields?.["Исходный файл"];
+  const file = Array.isArray(files) ? files[0] as { name?: string; mimetype?: string; presignedUrl?: string } : null;
+  return file?.presignedUrl ? { name: file.name || "файл.xlsx", mimetype: file.mimetype || "application/octet-stream", url: file.presignedUrl } : null;
+}
+
 export type AuditRow = { id: string; time: string; user: string; action: string; section: string; title: string; recordId: string; changes: string };
 export async function loadAudit(): Promise<AuditRow[]> {
   const records = await listRecords(await resolveTable(audit));
