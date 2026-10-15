@@ -73,8 +73,12 @@ async function update(key: TableKey, id: string, fields: RecordFields) {
   const table = await tableId(key);
   const before = ((await getRecord(table, id))?.fields ?? {}) as Record<string, unknown>;
   const record = await updateRecord(table, id, fields, "name");
-  const after = (record.fields ?? {}) as Record<string, unknown>;
-  const changes = Object.keys(fields).filter((name) => shown(before[name]) !== shown(after[name] ?? fields[name])).map((name) => `${name}: ${shown(before[name])} → ${shown(after[name] ?? fields[name])}`);
+  // the PATCH answer may carry links without titles: compare links by id, show titles from a fresh read
+  const linkIds = (value: unknown) => (Array.isArray(value) ? value : value == null || value === "" ? [] : [value]).map((v) => typeof v === "object" && v ? String((v as { id?: unknown }).id ?? "") : String(v)).sort().join(",");
+  const same = (name: string, a: unknown, b: unknown) => field(key, name)?.type === "link" ? linkIds(a) === linkIds(b) : shown(a) === shown(b);
+  const changed = Object.keys(fields).filter((name) => !same(name, before[name], record.fields?.[name] ?? fields[name]));
+  const after = (changed.some((name) => field(key, name)?.type === "link") ? (await getRecord(table, id))?.fields ?? record.fields : record.fields ?? {}) as Record<string, unknown>;
+  const changes = changed.map((name) => `${name}: ${shown(before[name])} → ${shown(after[name] ?? fields[name])}`);
   if (changes.length) await log("Изменение", key, id, titleOf(key, { ...before, ...after }), changes.join("\n"));
   return record;
 }
