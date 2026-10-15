@@ -20,7 +20,7 @@ const comment: Spec = { name: "Комментарий", kind: "textarea", wide: 
 
 export const EDITORS: Record<EditKind, { table: TableKey; singular: string; created: string; fields: Spec[] }> = {
   products: { table: "products", singular: "товар", created: "Товар добавлен", fields: [
-    { name: "Название", kind: "text", required: true, wide: true }, { name: "Категория", kind: "select", options: list("Курица", "Утка", "Прочее") }, { name: "Кг в коробке", kind: "number" }] },
+    { name: "Название", kind: "text", required: true, wide: true }, { name: "Страна", kind: "select", options: list("Китай", "РФ"), label: "Страна (в какой список партий попадает)" }, { name: "Категория", kind: "select", options: list("Курица", "Утка", "Прочее") }, { name: "Кг в коробке", kind: "number" }] },
   contacts: { table: "contacts", singular: "контрагент", created: "Контрагент добавлен", fields: [
     { name: "Название", kind: "text", required: true }, { name: "Тип", kind: "select", required: true, options: list("Клиент", "Партнёр", "Поставщик", "Заёмщик", "Займодавец", "Прочее") },
     { name: "Телефон", kind: "text" }, { name: "Сальдо на начало", kind: "signed", label: "Сальдо на начало, сом («+» — должен нам)" }, comment] },
