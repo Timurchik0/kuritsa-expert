@@ -782,6 +782,23 @@
       "isLookup": null,
       "isComputed": null,
       "isMultipleCellValue": false
+    },
+    {
+      "id": "fldPPovaHVncoyfg0dM",
+      "name": "Плановая маржа для НсП, сом/кг",
+      "dbFieldName": "Planovaya_marzha_dlya_NsP_som_kg",
+      "type": "number",
+      "description": null,
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
     }
   ]
 }

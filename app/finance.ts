@@ -6,6 +6,8 @@ export const BANK_FEE = "Комиссия банка за перевод, %";
 export const INTERNAL_TAX = "Внутренний НДС + НсП при продаже, %";
 export const RUSSIA_VAT = "НДС на импорт РФ, %";
 export const RUSSIA_SALES_TAX = "НсП РФ, %";
+export const RUSSIA_MARGIN = "Плановая маржа для НсП РФ, сом/кг";
+export const RUSSIA_MARGIN_DEFAULT = 15;
 
 export function setting(data: Dataset, parameter: string): number | null {
   const row = data.settings.find((item) => item["Параметр"] === parameter);
@@ -52,6 +54,12 @@ export function calculateSummary(data: Dataset) {
   };
 }
 
+/** Planned margin in the RF НсП base: the batch's own value, otherwise the default from the settings (15 сом/кг). */
+export function russiaMargin(form: Record<string, unknown>, data: Dataset) {
+  const own = form["Плановая маржа для НсП, сом/кг"];
+  return own !== "" && own != null && Number.isFinite(Number(own)) ? Number(own) : setting(data, RUSSIA_MARGIN) ?? RUSSIA_MARGIN_DEFAULT;
+}
+
 export function supplierPaidSom(row: Record<string, unknown>) {
   return amount(row["Предоплата $"]) * amount(row["Курс предоплаты"]) + amount(row["Постоплата $"]) * amount(row["Курс постоплаты"]) + amount(row["Цена ₽/кг"]) * amount(row["Курс ₽→сом"]) * amount(row["Кг"]);
 }
@@ -66,7 +74,7 @@ export function batchEstimates(form: Record<string, unknown>, data: Dataset) {
   const sale = amount(form["Цена продажи сом/кг"]);
   const rub = amount(form["Цена ₽/кг"]) * amount(form["Курс ₽→сом"]);
   const tax = form["Страна"] === "РФ"
-    ? russiaVat == null || russiaSalesTax == null ? null : kg * (rub * russiaVat / 100 + (rub * (1 + russiaVat / 100) + 2) * russiaSalesTax / 100)
+    ? russiaVat == null || russiaSalesTax == null ? null : kg * (rub * russiaVat / 100 + (rub * (1 + russiaVat / 100) + amount(form["Логистика, сом/кг"]) + russiaMargin(form, data)) * russiaSalesTax / 100)
     : internalTax == null ? null : sale * internalTax / 100 * kg;
   const cents = (value: number | null) => value == null ? null : Math.round((value + Number.EPSILON) * 100) / 100;
   return { commission: cents(commission), tax: cents(tax) };
