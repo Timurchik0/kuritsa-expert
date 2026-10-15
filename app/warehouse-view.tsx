@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, Search } from "lucide-react";
+import { AlertTriangle, Pencil, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { CalcInfo } from "./calc-info";
@@ -12,7 +12,7 @@ import { Pager, PeriodInputs, SearchSelect, SortDirection, date, fmt, inPeriod, 
 const PAGE = 50;
 const outgoing = (row: Row) => row["Тип"] !== "Приход";
 
-export default function WarehouseView({ data }: { data: Dataset }) {
+export default function WarehouseView({ data, onEditProduct, onEditMovement }: { data: Dataset; onEditProduct: (row: Row) => void; onEditMovement: (row: Row) => void }) {
   const [product, setProduct] = useState("");
   const [kind, setKind] = useState("");
   const [search, setSearch] = useState("");
@@ -77,7 +77,7 @@ export default function WarehouseView({ data }: { data: Dataset }) {
       // a div, not a button: the card contains the ⓘ button (nested buttons are invalid HTML)
       const pick = () => { setProduct(product === p.id ? "" : p.id); setPage(0); };
       return <div key={p.id} role="button" tabIndex={0} aria-pressed={product === p.id} onClick={pick} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } }} className={`flex cursor-pointer items-start justify-between gap-3 border-b border-r border-[#eef2ef] px-4 py-3 text-left outline-none hover:bg-[#f6faf8] focus-visible:ring-2 focus-visible:ring-[#178779]/30 ${product === p.id ? "bg-[#eef7f2]" : ""}`}>
-        <div className="min-w-0"><div className="truncate text-sm font-medium">{text(p["Название"])}</div><div className="mt-0.5 text-[11px] text-[#8b998f]">Приход {fmt(s.in)} кг · отгрузка {fmt(s.out)} кг · {s.ops} оп.</div><div className="mt-0.5 text-[11px] text-[#8b998f]">По плановой цене: {som(p["Стоимость остатка, сом"])}</div></div>
+        <div className="min-w-0"><div className="flex items-center gap-1 text-sm font-medium"><span className="truncate">{text(p["Название"])}</span><button type="button" title="Изменить товар" aria-label="Изменить товар" className="rounded p-0.5 text-[#9aaba2] hover:bg-[#e8f1ec] hover:text-[#147d6e]" onClick={(e) => { e.stopPropagation(); onEditProduct(p); }}><Pencil size={12} /></button></div><div className="mt-0.5 text-[11px] text-[#8b998f]">Приход {fmt(s.in)} кг · отгрузка {fmt(s.out)} кг · {s.ops} оп.</div><div className="mt-0.5 text-[11px] text-[#8b998f]">По плановой цене: {som(p["Стоимость остатка, сом"])}</div></div>
         <span className={`flex shrink-0 items-center gap-1 text-sm font-semibold tabular-nums ${kg < 0 ? "text-[#bd5749]" : ""}`}>{kg < 0 && <AlertTriangle size={14} aria-label="Отгрузок больше, чем приходов: в Excel не внесён приход" />}{fmt(kg)} кг<CalcInfo label={`Остаток: ${text(p["Название"])}`} {...productInfo(p, "Остаток, кг", data.movements)} /></span>
       </div>;
     })}</div>
@@ -96,7 +96,7 @@ export default function WarehouseView({ data }: { data: Dataset }) {
         const ship = r["Тип"] === "Отгрузка"; const kg = n(r["Кг"]); const sign = r["Тип"] === "Приход" ? "" : "−";
         const markup = markupOf(r);
         const dev = ship && kg ? (n(r["Цена сом/кг"]) - n(r["Цена плановая продажная, сом/кг"])) * kg : null;
-        return <tr key={r.id} className="border-b last:border-0">
+        return <tr key={r.id} className="cursor-pointer border-b last:border-0 hover:bg-[#f5faf7]" title="Нажмите, чтобы изменить или удалить" onClick={(e: React.MouseEvent) => { if (!(e.target as HTMLElement).closest("button")) onEditMovement(r); }}>
           <td className={`${td} whitespace-nowrap text-[#7d8b81]`}>{date(r["Дата"])}</td>
           <td className={td}>{r["ПартияId"] ? <span className="font-medium">{labelOf(data.batches, r["ПартияId"], "Партия")}</span> : <span className="text-xs text-[#9aa79f]" title="Партия не указана в Excel">{text(r["Источник"]) || "—"}</span>}</td>
           <td className={td}>{labelOf(data.contacts, r["КонтрагентId"])}</td>

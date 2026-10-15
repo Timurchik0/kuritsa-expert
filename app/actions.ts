@@ -238,7 +238,8 @@ function sameScope(parent: Record<string, unknown>, product: unknown, country: u
 
 export async function saveRecord(key: TableKey, input: Record<string, unknown>, id?: string) {
   if (!Object.hasOwn(schemas, key)) throw new Error("Неизвестная таблица");
-  if (!["batches", "payments", "taxes", "reconciliations", "settings", "quotas", "licenses", "requests"].includes(key)) throw new Error("Используйте форму операции");
+  if (!["batches", "payments", "taxes", "reconciliations", "settings", "quotas", "licenses", "requests", "products", "contacts", "accounts", "entities", "snapshots"].includes(key)) throw new Error("Используйте форму операции");
+  await checkReference(key, input, id);
   if (key === "quotas" && (!input["Квота"] || num(input["Объём, кг"]) <= 0)) throw new Error("Укажите название квоты и объём");
   if (key === "licenses") {
     if (!input["Лицензия"] || !input["Квота"] || num(input["Объём, кг"]) <= 0) throw new Error("Укажите номер лицензии, квоту и объём");
@@ -270,9 +271,11 @@ export async function saveRecord(key: TableKey, input: Record<string, unknown>, 
     if (existing["Параметр"] === "Курс $ для отчётов" && num(input["Значение"]) <= 0) throw new Error("Курс должен быть больше нуля");
   }
   if (key === "taxes") {
-    if (id || !input["Основание"] || !input["Дата"] || input["Начислено, сом"] === undefined || !Number.isFinite(Number(input["Начислено, сом"])) || num(input["Начислено, сом"]) < 0 || Object.keys(input).some((name) => !["Основание", "Дата", "Начислено, сом", "Комментарий"].includes(name))) throw new Error("Укажите основание, дату и начисление налога");
+    if (!input["Основание"] || !input["Дата"] || input["Начислено, сом"] === undefined || !Number.isFinite(Number(input["Начислено, сом"])) || num(input["Начислено, сом"]) < 0 || Object.keys(input).some((name) => !["Основание", "Дата", "Начислено, сом", "Оплачено, сом", "Комментарий"].includes(name))) throw new Error("Укажите основание, дату и начисление налога");
+    if (!id && num(input["Оплачено, сом"]) > 0) throw new Error("Оплата налога записывается кнопкой «Оплатить»");
+    if (num(input["Оплачено, сом"]) < 0 || num(input["Оплачено, сом"]) > num(input["Начислено, сом"]) + 0.005) throw new Error("Оплачено не может быть больше начисленного");
   }
-  if (key === "reconciliations" && (id || !input["Партии в своде"] || !input["Дата свода"] || !Number.isFinite(Number(input["Факт остаток, $"])))) throw new Error("Укажите партии, дату и факт остаток сверки");
+  if (key === "reconciliations" && (!input["Партии в своде"] || !input["Дата свода"] || !Number.isFinite(Number(input["Факт остаток, $"])))) throw new Error("Укажите партии, дату и факт остаток сверки");
   if (key === "batches" && input["Статус"] === "На складе") {
     if (!id) throw new Error("Для приёмки используйте действие «Принять на склад»");
     const current = await readOne("batches", id, ["Статус"]);
@@ -293,6 +296,70 @@ export async function saveRecord(key: TableKey, input: Record<string, unknown>, 
   // a request linked to a batch also puts its license and quota on that batch
   if (key === "requests" && input["Партия"]) await update("batches", String(input["Партия"]), writable("batches", { "Лицензия": input["Лицензия"], ...(linkedQuota ? { "Квота": linkedQuota } : {}) }));
   return result.id;
+}
+
+// Reference tables (товары, контрагенты, счета, юрлица): required fields and unique names
+async function checkReference(key: TableKey, input: Record<string, unknown>, id?: string) {
+  if (!["products", "contacts", "accounts", "entities"].includes(key)) return;
+  const name = String(input["Название"] ?? "").trim();
+  if (!id && !name) throw new Error("Укажите название");
+  if (Object.hasOwn(input, "Название") && !name) throw new Error("Название не может быть пустым");
+  if (key === "contacts" && !id && !input["Тип"]) throw new Error("Укажите тип контрагента");
+  if (key === "products" && input["Кг в коробке"] !== undefined && input["Кг в коробке"] !== "" && num(input["Кг в коробке"]) <= 0) throw new Error("Кг в коробке должно быть больше нуля");
+  if (name) {
+    const same = (await readTable(key)).find((row) => row.id !== id && String(row["Название"] ?? "").trim().toLocaleLowerCase("ru") === name.toLocaleLowerCase("ru"));
+    if (same) throw new Error(`«${name}» уже есть — выберите другое название`);
+  }
+}
+
+// Edit of a stock movement: same rules as creating it, stock is checked without this movement's own weight
+export async function updateMovement(id: string, input: Record<string, unknown>) {
+  const current = await readOne("movements", id, ["Тип", "ТоварId", "Кг"]);
+  const kind = String(current["Тип"]);
+  const allowed = ["Дата", "Товар", "Партия", "Контрагент", "Коробки", "Кг", "Цена сом/кг", "Цена плановая продажная, сом/кг", "Сумма вручную", "В расчёт с контрагентом", "Комментарий"];
+  if (Object.keys(input).some((name) => !allowed.includes(name))) throw new Error("Это поле движения менять нельзя");
+  const product = input["Товар"] ?? current["ТоварId"];
+  if (!product || !input["Дата"]) throw new Error("Укажите дату и товар");
+  if (num(input["Кг"]) < 0 || num(input["Коробки"]) < 0) throw new Error("Вес и коробки не могут быть отрицательными");
+  await Promise.all([ensureLink("products", product), ensureLink("batches", input["Партия"]), ensureLink("contacts", input["Контрагент"])]);
+  if (kind === "Отгрузка") {
+    if (!input["Контрагент"]) throw new Error("Укажите контрагента");
+    const stock = num((await readOne("products", String(product), ["Остаток, кг"]))["Остаток, кг"]) + (product === current["ТоварId"] ? num(current["Кг"]) : 0);
+    if (num(input["Кг"]) > stock + 0.005) throw new Error(`Вес превышает остаток на складе (${stock} кг)`);
+  }
+  if (input["В расчёт с контрагентом"] && !input["Контрагент"]) throw new Error("Выберите контрагента для расчёта");
+  return (await update("movements", id, writable("movements", input))).id;
+}
+
+// What may not be deleted while other records point at it: table → [child table, link field, label]
+const DEPENDENTS: Partial<Record<TableKey, [TableKey, string, string][]>> = {
+  products: [["movements", "ТоварId", "движений склада"], ["batches", "ТоварId", "партий"], ["quotas", "ТоварId", "квот"], ["licenses", "ТоварId", "лицензий"], ["requests", "ТоварId", "заявок"]],
+  contacts: [["movements", "КонтрагентId", "движений склада"], ["payments", "КонтрагентId", "платежей"], ["batches", "ПоставщикId", "партий"]],
+  accounts: [["payments", "СчётId", "платежей"]],
+  entities: [["quotas", "ЮрлицоId", "квот"]],
+  batches: [["movements", "ПартияId", "движений склада (приход/отгрузки)"], ["payments", "ПартияId", "платежей"]],
+  quotas: [["licenses", "КвотаId", "лицензий"]],
+  licenses: [["requests", "ЛицензияId", "заявок"]],
+};
+const DELETABLE: TableKey[] = ["products", "contacts", "accounts", "entities", "batches", "movements", "payments", "taxes", "quotas", "licenses", "requests", "reconciliations", "snapshots"];
+
+export async function deleteEntity(key: TableKey, id: string) {
+  if (!DELETABLE.includes(key)) throw new Error("Эти записи удалять нельзя");
+  recId(id);
+  for (const [child, link, label] of DEPENDENTS[key] ?? []) {
+    const count = (await readTable(child)).filter((row) => row[link] === id).length;
+    if (count) throw new Error(`Нельзя удалить: на запись ссылаются ${count} ${label}. Сначала удалите или перенесите их.`);
+  }
+  if (key === "taxes" && num((await readOne("taxes", id, ["Оплачено, сом"]))["Оплачено, сом"]) > 0) throw new Error("По налогу уже есть оплата — сначала обнулите «Оплачено» или удалите платёж");
+  if (key === "snapshots" && (await readOne("snapshots", id, ["Источник"]))["Источник"] === "Excel") throw new Error("Исходный снимок из Excel удалять нельзя");
+  if (key === "batches" || key === "licenses" || key === "quotas") {
+    // links that only describe the record (заявка → партия, партия → лицензия/квота) are cleared, not blocking
+    if (key === "batches") for (const r of (await readTable("requests")).filter((r) => r["ПартияId"] === id)) await update("requests", r.id, writable("requests", { "Партия": null }));
+    const field = key === "licenses" ? "ЛицензияId" : key === "quotas" ? "КвотаId" : null;
+    if (field) for (const b of (await readTable("batches")).filter((b) => b[field] === id)) await update("batches", b.id, writable("batches", { [field.slice(0, -2)]: null }));
+  }
+  await deleteRecordSafe(key, id);
+  return id;
 }
 
 export async function createMovement(input: Record<string, unknown>) {

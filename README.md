@@ -46,6 +46,7 @@ npx tsx scripts/e2e-check.mts          # сквозной сценарий на 
                                        # сверяет формулы и сводку, затем всё удаляет
 npx tsx scripts/check-rollups.mts      # пересчитывает все rollup-поля из дочерних записей и сравнивает
 npx tsx scripts/check-rollups.mts --fix
+npx tsx scripts/crud-check.mts         # создание, изменение и удаление; запреты удаления связанных записей
 ```
 
 `check-rollups` нужен из-за особенности Tablox: при удалении связанной записи итоги родителя не

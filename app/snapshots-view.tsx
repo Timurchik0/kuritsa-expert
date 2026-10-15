@@ -15,7 +15,7 @@ const td = "whitespace-nowrap px-3 py-3 text-sm";
 type Attachment = { name?: string; presignedUrl?: string };
 type Line = { id: string; date: unknown; title: string; source: string; turnover: number; loans: number; capital: number; taxes: number; capitalUsd: unknown; realUsd: unknown; files: Attachment[]; live?: boolean };
 
-export default function SnapshotsView({ rows, summary: s, busy, onSnapshot }: { rows: Row[]; summary: ReturnType<typeof calculateSummary>; busy: boolean; onSnapshot: () => void }) {
+export default function SnapshotsView({ rows, summary: s, busy, onSnapshot, onEdit }: { rows: Row[]; summary: ReturnType<typeof calculateSummary>; busy: boolean; onSnapshot: () => void; onEdit: (row: Row) => void }) {
   const saved: Line[] = [...rows].sort((a, b) => String(b["Дата"] ?? "").localeCompare(String(a["Дата"] ?? ""))).map((row) => ({
     id: row.id, date: row["Дата"], title: String(row["Снимок"] ?? ""), source: String(row["Источник"] ?? ""),
     turnover: amount(row["Деньги в обороте, сом"]), loans: amount(row["Займы (нетто), сом"]), capital: amount(row["Капитал, сом"]), taxes: amount(row["Налоги к уплате, сом"]),
@@ -31,7 +31,7 @@ export default function SnapshotsView({ rows, summary: s, busy, onSnapshot }: { 
       <tbody>{lines.map((line, i) => {
         const previous = lines[i + 1];
         const delta = previous ? line.capital - previous.capital : null;
-        return <tr key={line.id} className={`border-b last:border-0 ${line.live ? "bg-[#f3faf6]" : ""}`}>
+        return <tr key={line.id} className={`border-b last:border-0 ${line.live ? "bg-[#f3faf6]" : "cursor-pointer hover:bg-[#f5faf7]"}`} onClick={(e) => { const row = rows.find((r) => r.id === line.id); if (row && !(e.target as HTMLElement).closest("a,button")) onEdit(row); }}>
           <td className={`${td} whitespace-nowrap text-[#7d8b81]`}>{shownDate(line.date)}</td>
           <td className={td}><div className="font-medium">{line.live ? "Сейчас" : line.source === "Excel" ? "Исходный Excel клиента" : "Зафиксировано"}</div><div className="text-[11px] text-[#8b998f]">{line.live ? "живые цифры сводки" : line.source === "Excel" ? "лист «баланс денег»" : "кнопкой «Зафиксировать баланс»"}</div></td>
           <td className={`${td} text-right tabular-nums`}>{som(line.turnover)}</td>
