@@ -290,6 +290,25 @@
       "isLookup": null,
       "isComputed": true,
       "isMultipleCellValue": false
+    },
+    {
+      "id": "fldxhrn62eJNsjFoKPg",
+      "name": "Оплата за партию, сом",
+      "dbFieldName": "Oplata_za_partiyu_som",
+      "type": "formula",
+      "description": null,
+      "options": {
+        "expression": "IF(AND({fldFJZDrNAToHoKUDoE}='Расход', {fldVr3EwxoEdtVdnnJe}='Оплата поставщику'), {fldmo5pRF9xevLICfDU}, 0)",
+        "timeZone": "utc",
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
     }
   ]
 }

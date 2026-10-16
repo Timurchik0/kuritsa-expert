@@ -675,11 +675,11 @@
       "type": "formula",
       "description": "Оплачено поставщику по партиям, которые ещё не пришли (Предоплата / В пути / На таможне). Как «отправлено денег» в листе «Китай».",
       "options": {
-        "expression": "IF(OR({fldBYlZgmIRRqzKbhnr}='Предоплата',{fldBYlZgmIRRqzKbhnr}='В пути',{fldBYlZgmIRRqzKbhnr}='На таможне'), {fldKJJgoQWeDof49Zdm}, 0)",
+        "expression": "IF(OR({fldBYlZgmIRRqzKbhnr}='Предоплата',{fldBYlZgmIRRqzKbhnr}='В пути',{fldBYlZgmIRRqzKbhnr}='На таможне'), {fldCEul90IEVLxgeQsv}, 0)",
         "timeZone": "utc",
         "formatting": {
           "type": "decimal",
-          "precision": 0
+          "precision": 2
         }
       },
       "cellValueType": "number",
@@ -798,6 +798,24 @@
       "cellValueType": "number",
       "isLookup": null,
       "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldCEul90IEVLxgeQsv",
+      "name": "Оплачено по кассе, сом",
+      "dbFieldName": "Oplacheno_po_kasse_som",
+      "type": "rollup",
+      "description": null,
+      "options": {
+        "expression": "sum({values})",
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
       "isMultipleCellValue": false
     }
   ]

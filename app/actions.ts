@@ -292,6 +292,8 @@ export async function saveRecord(key: TableKey, input: Record<string, unknown>, 
     if (!input["Счёт"] || !input["Направление"] || !input["Дата"] || num(input["Сумма"]) <= 0) throw new Error("Заполните дату, счёт, направление и положительную сумму");
     if (input["Валюта"] !== "сом" && num(input["Курс"]) <= 0) throw new Error("Укажите положительный курс валюты");
     if (input["В расчёт с контрагентом"] && !input["Контрагент"]) throw new Error("Выберите контрагента для расчёта");
+    // counted once: through the batch advance (Партии → «Оплачено по кассе»), not also in the supplier's balance
+    if (input["Партия"] && input["Категория"] === "Оплата поставщику") input = { ...input, "В расчёт с контрагентом": false };
   }
   if (key === "batches" && !id && (!input["Номер партии"] || !input["Товар"])) throw new Error("Укажите номер партии и товар");
   const payload = writable(key, input);
