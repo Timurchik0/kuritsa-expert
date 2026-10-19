@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Dataset, Row, TableKey } from "./actions";
-import { SearchSelect, dateInput, text, uiInput, type Choice } from "./ui-kit";
+import { SearchSelect, dateInput, paymentCategories, text, uiInput, type Choice } from "./ui-kit";
 
 // One create / edit / delete form for every table that has no special workflow of its own.
 export type EditKind = "products" | "contacts" | "accounts" | "entities" | "movements" | "payments" | "taxes" | "quotas" | "licenses" | "requests" | "reconciliations" | "snapshots";
 type Kind = "text" | "number" | "signed" | "date" | "textarea" | "checkbox" | "select";
-type Spec = { name: string; kind: Kind; required?: boolean; options?: (data: Dataset) => Choice[]; wide?: boolean; label?: string; readonly?: boolean };
+type Spec = { name: string; kind: Kind; required?: boolean; options?: (data: Dataset, form?: Record<string, unknown>) => Choice[]; wide?: boolean; label?: string; readonly?: boolean };
 
 const list = (...values: string[]) => () => values.map((v) => ({ value: v, title: v }));
 const rows = (key: TableKey, field = "Название") => (data: Dataset) => data[key].map((r) => ({ value: r.id, title: text(r[field]) || text(r["Номер партии"]) || "—" }));
@@ -20,7 +20,7 @@ const comment: Spec = { name: "Комментарий", kind: "textarea", wide: 
 
 export const EDITORS: Record<EditKind, { table: TableKey; singular: string; created: string; fields: Spec[] }> = {
   products: { table: "products", singular: "товар", created: "Товар добавлен", fields: [
-    { name: "Название", kind: "text", required: true, wide: true }, { name: "Страна", kind: "select", options: list("Китай", "РФ"), label: "Страна (в какой список партий попадает)" }, { name: "Категория", kind: "select", options: list("Курица", "Утка", "Прочее") }, { name: "Кг в коробке", kind: "number" }] },
+    { name: "Название", kind: "text", required: true, wide: true }, { name: "Страна", kind: "select", options: list("Китай", "РФ"), label: "Страна (в какой список партий попадает)" }, { name: "Категория", kind: "select", options: (_data, form) => paymentCategories(form?.["Направление"]).map((v) => ({ value: v, title: v })) }, { name: "Кг в коробке", kind: "number" }] },
   contacts: { table: "contacts", singular: "контрагент", created: "Контрагент добавлен", fields: [
     { name: "Название", kind: "text", required: true }, { name: "Тип", kind: "select", required: true, options: list("Клиент", "Партнёр", "Поставщик", "Заёмщик", "Займодавец", "Прочее") },
     { name: "Телефон", kind: "text" }, { name: "Сальдо на начало", kind: "signed", label: "Сальдо на начало, сом («+» — должен нам)" }, comment] },
@@ -81,7 +81,7 @@ export function RecordEditor({ kind, row, defaults, data, busy, warning, onSave,
   if (key !== openedFor) { setOpenedFor(key); setConfirm(false); setForm(kind ? { ...formOf(kind, row), ...defaults } : {}); }
   if (!kind) return null;
   const spec = EDITORS[kind];
-  const set = (name: string, value: unknown) => setForm((f) => ({ ...f, [name]: value }));
+  const set = (name: string, value: unknown) => setForm((f) => ({ ...f, [name]: value, ...(kind === "payments" && name === "Направление" && !paymentCategories(value).includes(String(f["Категория"] ?? "")) ? { "Категория": "" } : {}) }));
   const submit = () => {
     const input = Object.fromEntries(spec.fields.filter((f) => !f.readonly).map((f) => [f.name, f.kind === "number" || f.kind === "signed" ? (form[f.name] === "" || form[f.name] == null ? null : Number(form[f.name])) : form[f.name]]));
     onSave(kind, input, row?.id);
@@ -93,7 +93,7 @@ export function RecordEditor({ kind, row, defaults, data, busy, warning, onSave,
         <span>{f.label ?? f.name}{f.required && <span className="text-red-600"> *</span>}</span>
         {f.readonly ? <span className="flex h-9 items-center text-sm text-[#253b33]">{text(row?.[f.name]) || "—"}</span>
           : f.kind === "checkbox" ? <span className="flex h-9 items-center gap-2 text-sm text-[#253b33]"><Checkbox checked={Boolean(form[f.name])} onCheckedChange={(v) => set(f.name, v === true)} />Да</span>
-          : f.kind === "select" ? <SearchSelect name={f.name} value={form[f.name]} onChange={(v) => set(f.name, v)} items={f.options!(data)} required={f.required} />
+          : f.kind === "select" ? <SearchSelect name={f.name} value={form[f.name]} onChange={(v) => set(f.name, v)} items={f.options!(data, form)} required={f.required} />
           : f.kind === "textarea" ? <textarea className={`${uiInput} min-h-20 py-2`} value={text(form[f.name])} onChange={(e) => set(f.name, e.target.value)} />
           : <input className={uiInput} type={f.kind === "date" ? "date" : f.kind === "text" ? "text" : "number"} step={f.kind === "text" || f.kind === "date" ? undefined : "any"} min={f.kind === "number" ? 0 : undefined} required={f.required} value={text(form[f.name])} onChange={(e) => set(f.name, e.target.value)} />}
       </label>)}

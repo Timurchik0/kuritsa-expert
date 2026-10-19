@@ -30,6 +30,13 @@ export function groupByNumber(rows: Row[]) {
 
 export const kinds = (count: number) => `${count} ${count % 10 === 1 && count % 100 !== 11 ? "вид" : [2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100) ? "вида" : "видов"} товара`;
 
+// payment categories by direction: income-only, expense-only, and the ones used both ways
+export const PAYMENT_CATEGORIES: Record<"Приход" | "Расход", string[]> = {
+  "Приход": ["Оплата от клиента", "Займы", "Расчёты с партнёром", "Перевод между счетами", "Яйца", "Прочий приход", "Прочее"],
+  "Расход": ["Оплата поставщику", "Растаможка", "Налоги", "Логистика", "Выгрузка", "Комиссия банка", "Зарплата", "Аренда", "Займы", "Расчёты с партнёром", "Перевод между счетами", "Расходы вне себестоимости", "Личные расходы", "Яйца", "Прочие расходы", "Прочее"],
+};
+export const paymentCategories = (direction: unknown) => direction === "Приход" || direction === "Расход" ? PAYMENT_CATEGORIES[direction] : [...new Set([...PAYMENT_CATEGORIES["Приход"], ...PAYMENT_CATEGORIES["Расход"]])];
+
 export type Choice = { value: string; title: string; group?: string };
 
 export function SearchSelect({ name, value, onChange, items, required, className = "", placeholder = "Выберите..." }: { name: string; value: unknown; onChange: (v: string) => void; items: Choice[]; required?: boolean; className?: string; placeholder?: string }) {
@@ -41,7 +48,7 @@ export function SearchSelect({ name, value, onChange, items, required, className
     return a.title.localeCompare(b.title, "ru", { sensitivity: "base", numeric: true });
   });
   const chosen = items.find((item) => item.value === value);
-  return <Popover open={open} onOpenChange={setOpen}>
+  return <Popover open={open} onOpenChange={setOpen} modal>
     <PopoverTrigger asChild><button type="button" role="combobox" aria-label={name} aria-controls={listId} aria-expanded={open} aria-required={required} className={`${uiInput} flex items-center justify-between gap-2 text-left ${className}`}><span className={`min-w-0 truncate ${chosen ? "" : "text-[#9ba79f]"}`}>{chosen?.title || placeholder}</span><ChevronsUpDown size={15} className="shrink-0 text-[#8e9b92]" /></button></PopoverTrigger>
     <PopoverContent align="start" sideOffset={4} className="z-[80] w-[min(420px,calc(100vw-2rem))] p-0"><Command><CommandInput placeholder={`Поиск: ${name.toLocaleLowerCase("ru")}`} /><CommandList id={listId} className="max-h-64"><CommandEmpty>Ничего не найдено</CommandEmpty><CommandGroup>
       {!required && <CommandItem value="Очистить выбор" onSelect={() => { onChange(""); setOpen(false); }}><span className="text-[#85958a]">{placeholder}</span></CommandItem>}
