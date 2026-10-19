@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { loadAudit, type AuditRow } from "./actions";
+import type { AuditRow } from "./actions";
+import { loadAudit } from "./client-api";
 import { Pager, PeriodInputs, SearchSelect, inPeriod, panel, td, th } from "./ui-kit";
 
 const PAGE = 50;

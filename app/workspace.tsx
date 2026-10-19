@@ -18,7 +18,8 @@ import SummaryView from "./summary-view";
 import SnapshotsView from "./snapshots-view";
 import { ReconciliationsView, SettingsView, TaxesView } from "./finance-views";
 import { BANK_FEE, INTERNAL_TAX, REPORT_RATE, RUSSIA_MARGIN, RUSSIA_MARGIN_DEFAULT, RUSSIA_SALES_TAX, RUSSIA_VAT, batchEstimates, datasetAsOf, calculateSummary, kgPerBox, setting, supplierPaidSom } from "./finance";
-import { createMovement, deleteEntity as removeEntity, loadAffected, loadTables, payTax, receiveBatch, saveBatch, saveRecord, saveSnapshot, updateMovement, type DataResult, type Dataset, type Row, type TableKey, type TablesResult } from "./actions";
+import type { DataResult, Dataset, Row, TableKey, TablesResult } from "./actions";
+import { createMovement, deleteEntity as removeEntity, isStaleVersion, loadAffected, loadTables, payTax, receiveBatch, saveBatch, saveRecord, saveSnapshot, updateMovement } from "./client-api";
 import WarehouseView from "./warehouse-view";
 import BatchesList from "./batches-list";
 import { Segmented, groupByNumber, kinds, paymentCategories } from "./ui-kit";
@@ -301,8 +302,9 @@ export default function Workspace({ initial, user }: { initial: DataResult; user
       const active = keys.filter((key) => versionsRef.current[key] === versions[key]);
       if (active.length) setResult((current) => mergeLoaded(current, incoming, active, partial));
       if (showSpinner && Object.keys(incoming.errors).length) toast.error("Не все данные обновились. Повторите попытку.");
-    } catch {
-      if (showSpinner) toast.error("Не удалось обновить данные. Повторите попытку.");
+    } catch (error) {
+      if (isStaleVersion(error)) { toast.info("Вышла новая версия приложения — страница обновится"); setTimeout(() => location.reload(), 2500); return; }
+      if (showSpinner) toast.error(error instanceof Error && error.message ? error.message : "Не удалось обновить данные. Повторите попытку.");
     } finally { if (showSpinner) setReloading(false); }
   }
   const refresh = () => refreshData(allTables, () => loadTables(allTables), false, true);
@@ -352,6 +354,7 @@ export default function Workspace({ initial, user }: { initial: DataResult; user
       pendingRef.current = previousPending;
       createdRef.current = previousCreated;
       setResult(previous);
+      if (isStaleVersion(error)) { toast.info("Вышла новая версия приложения — страница обновится, повторите действие"); setTimeout(() => location.reload(), 2500); return; }
       toast.error(error instanceof Error ? error.message : "Операция не выполнена");
       if (close) setModal(modal);
     } finally { setBusy(false); }
@@ -494,14 +497,14 @@ export default function Workspace({ initial, user }: { initial: DataResult; user
     const kg = n(batch["Кг"]), cost = n(batch["Цена продажи сом/кг"]);
     if (cost <= 0) { toast.error("У партии не указана плановая цена продажи"); return; }
     const perBox = kgPerBox(data.products.find((row) => row.id === batch["ТоварId"]));
-    if (!perBox) { toast.error("У товара не задано поле «Кг в коробке»"); return; }
-    const boxes = kg / perBox;
+    // without «Кг в коробке» the batch is received in kg only
+    const boxes = perBox ? kg / perBox : 0;
     run((d) => ({ ...d, batches: d.batches.map((b) => b.id === batch.id ? { ...b, "Статус": "На складе", "Дата прибытия": today(), "Аванс поставщику (в пути), сом": 0 } : b), products: d.products.map((p) => p.id === batch["ТоварId"] ? { ...p, "Остаток, кг": n(p["Остаток, кг"]) + kg, "Остаток, коробок": n(p["Остаток, коробок"]) + boxes, "Стоимость остатка, сом": n(p["Стоимость остатка, сом"]) + kg * cost } : p), movements: [temp({ "Дата": today(), "Тип": "Приход", "ТоварId": batch["ТоварId"], "ПартияId": batch.id, "Кг": kg, "Коробки": boxes, "Цена сом/кг": cost, "Цена плановая продажная, сом/кг": cost }), ...d.movements] }), () => receiveBatch(batch.id), "Партия принята на склад", ["batches", "products", "movements"], false);
   }  // several products of one batch number arrive together: receive them one by one, then reload stock and movements
   function receiveGroup(group: Row[]) {
     const ready = group.filter((b) => ["В пути", "На таможне"].includes(text(b["Статус"])));
-    const bad = ready.find((b) => n(b["Цена продажи сом/кг"]) <= 0 || !kgPerBox(data.products.find((p) => p.id === b["ТоварId"])));
-    if (bad) { toast.error(`${text(bad["Партия"])}: нужна плановая цена продажи и «Кг в коробке» у товара`); return; }
+    const bad = ready.find((b) => n(b["Цена продажи сом/кг"]) <= 0);
+    if (bad) { toast.error(`${text(bad["Партия"])}: укажите плановую цену продажи`); return; }
     const ids = new Set(ready.map((b) => b.id));
     const keys: TableKey[] = ["batches", "products", "movements"];
     run((d) => ({ ...d, batches: d.batches.map((b) => ids.has(b.id) ? { ...b, "Статус": "На складе", "Дата прибытия": today(), "Аванс поставщику (в пути), сом": 0 } : b) }), async () => {

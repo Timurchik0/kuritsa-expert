@@ -18,7 +18,7 @@ import requests from "@/schema/requests.json";
 import snapshots from "@/schema/snapshots.json";
 import audit from "@/schema/audit.json";
 import { currentUser } from "@/lib/session";
-import { calculateSummary, datasetAsOf } from "./finance";
+import { calculateSummary, datasetAsOf, localDay } from "./finance";
 
 const schemas = { products, accounts, contacts, batches, movements, payments, taxes, reconciliations, settings, entities, quotas, licenses, requests, snapshots } as const;
 export type TableKey = keyof typeof schemas;
@@ -244,6 +244,10 @@ export async function saveRecord(key: TableKey, input: Record<string, unknown>, 
   if (!Object.hasOwn(schemas, key)) throw new Error("Неизвестная таблица");
   if (!["batches", "payments", "taxes", "reconciliations", "settings", "quotas", "licenses", "requests", "products", "contacts", "accounts", "entities", "snapshots"].includes(key)) throw new Error("Используйте форму операции");
   await checkReference(key, input, id);
+  if (["batches", "products", "quotas", "licenses", "requests", "payments", "taxes"].includes(key)) {
+    const negative = Object.entries(input).find(([name, value]) => field(key, name)?.type === "number" && value !== null && value !== "" && Number(value) < 0);
+    if (negative) throw new Error(`«${negative[0]}» не может быть отрицательным`);
+  }
   if (key === "quotas" && (!input["Квота"] || num(input["Объём, кг"]) <= 0)) throw new Error("Укажите название квоты и объём");
   if (key === "licenses") {
     if (!input["Лицензия"] || !input["Квота"] || num(input["Объём, кг"]) <= 0) throw new Error("Укажите номер лицензии, квоту и объём");
@@ -311,7 +315,7 @@ async function checkReference(key: TableKey, input: Record<string, unknown>, id?
   if (!id && !name) throw new Error("Укажите название");
   if (Object.hasOwn(input, "Название") && !name) throw new Error("Название не может быть пустым");
   if (key === "contacts" && !id && !input["Тип"]) throw new Error("Укажите тип контрагента");
-  if (key === "products" && input["Кг в коробке"] !== undefined && input["Кг в коробке"] !== "" && num(input["Кг в коробке"]) <= 0) throw new Error("Кг в коробке должно быть больше нуля");
+  if (key === "products" && input["Кг в коробке"] != null && input["Кг в коробке"] !== "" && num(input["Кг в коробке"]) <= 0) throw new Error("Кг в коробке должно быть больше нуля");
   if (name) {
     const same = (await readTable(key)).find((row) => row.id !== id && String(row["Название"] ?? "").trim().toLocaleLowerCase("ru") === name.toLocaleLowerCase("ru"));
     if (same) throw new Error(`«${name}» уже есть — выберите другое название`);
@@ -319,6 +323,13 @@ async function checkReference(key: TableKey, input: Record<string, unknown>, id?
 }
 
 // Edit of a stock movement: same rules as creating it, stock is checked without this movement's own weight
+// Stock straight from the movements (raw type and weight) — the product's rollup lags a few seconds behind a new movement
+async function stockKg(product: string, exceptId?: string) {
+  return (await readTable("movements")).filter((m) => m["ТоварId"] === product && m.id !== exceptId)
+    .reduce((sum, m) => sum + (m["Тип"] === "Приход" ? num(m["Кг"]) : -num(m["Кг"])), 0);
+}
+const kgText = (value: number) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(value);
+
 export async function updateMovement(id: string, input: Record<string, unknown>) {
   const current = await readOne("movements", id, ["Тип", "ТоварId", "Кг"]);
   const kind = String(current["Тип"]);
@@ -330,8 +341,15 @@ export async function updateMovement(id: string, input: Record<string, unknown>)
   await Promise.all([ensureLink("products", product), ensureLink("batches", input["Партия"]), ensureLink("contacts", input["Контрагент"])]);
   if (kind === "Отгрузка") {
     if (!input["Контрагент"]) throw new Error("Укажите контрагента");
-    const stock = num((await readOne("products", String(product), ["Остаток, кг"]))["Остаток, кг"]) + (product === current["ТоварId"] ? num(current["Кг"]) : 0);
-    if (num(input["Кг"]) > stock + 0.005) throw new Error(`Вес превышает остаток на складе (${stock} кг)`);
+    const stock = await stockKg(String(product), id);
+    if (num(input["Кг"]) > stock + 0.005) throw new Error(`Вес превышает остаток на складе (${kgText(stock)} кг)`);
+  }
+  if (kind === "Приход") {
+    // a smaller (or moved) receipt must still cover what was already shipped
+    // (stock that was already negative in the imported history does not block corrections)
+    const others = await stockKg(String(current["ТоварId"]), id);
+    const left = others + (product === current["ТоварId"] ? num(input["Кг"]) : 0);
+    if (left < -0.005 && others + num(current["Кг"]) >= -0.005) throw new Error(`После изменения остаток товара станет отрицательным (${kgText(left)} кг) — по нему уже есть отгрузки`);
   }
   if (input["В расчёт с контрагентом"] && !input["Контрагент"]) throw new Error("Выберите контрагента для расчёта");
   return (await update("movements", id, writable("movements", input))).id;
@@ -356,6 +374,14 @@ export async function deleteEntity(key: TableKey, id: string) {
     const count = (await readTable(child)).filter((row) => row[link] === id).length;
     if (count) throw new Error(`Нельзя удалить: на запись ссылаются ${count} ${label}. Сначала удалите или перенесите их.`);
   }
+  if (key === "movements") {
+    const m = await readOne("movements", id, ["Тип", "ТоварId"]);
+    if (m["Тип"] === "Приход" && m["ТоварId"]) {
+      const left = await stockKg(String(m["ТоварId"]), id);
+      const kg = num((await readOne("movements", id, ["Кг"]))["Кг"]);
+      if (left < -0.005 && left + kg >= -0.005) throw new Error(`Нельзя удалить приход: остаток товара станет отрицательным (${kgText(left)} кг) — сначала удалите или исправьте отгрузки`);
+    }
+  }
   if (key === "taxes" && num((await readOne("taxes", id, ["Оплачено, сом"]))["Оплачено, сом"]) > 0) throw new Error("По налогу уже есть оплата — сначала обнулите «Оплачено» или удалите платёж");
   if (key === "snapshots" && (await readOne("snapshots", id, ["Источник"]))["Источник"] === "Excel") throw new Error("Исходный снимок из Excel удалять нельзя");
   if (key === "batches" || key === "licenses" || key === "quotas") {
@@ -376,8 +402,9 @@ export async function createMovement(input: Record<string, unknown>) {
   await ensureLink("contacts", input["Контрагент"]);
   if (input["Тип"] === "Отгрузка") {
     if (!input["Контрагент"] || num(input["Цена сом/кг"]) <= 0) throw new Error("Укажите контрагента и цену продажи");
-    const product = await readOne("products", String(input["Товар"]), ["Остаток, кг", "Средняя плановая цена, сом/кг"]);
-    if (num(input["Кг"]) > num(product["Остаток, кг"])) throw new Error("Вес превышает остаток на складе");
+    const product = await readOne("products", String(input["Товар"]), ["Средняя плановая цена, сом/кг"]);
+    const stock = await stockKg(String(input["Товар"]));
+    if (num(input["Кг"]) > stock + 0.005) throw new Error(`Вес превышает остаток на складе (${kgText(stock)} кг)`);
     // planned sale price: from the chosen batch if any, otherwise the product's average planned price on stock
     const plan = input["Партия"] ? num((await readOne("batches", String(input["Партия"]), ["Цена продажи сом/кг"]))["Цена продажи сом/кг"]) : 0;
     input = { ...input, "Цена плановая продажная, сом/кг": plan || num(product["Средняя плановая цена, сом/кг"]), "В расчёт с контрагентом": true };
@@ -401,13 +428,12 @@ export async function receiveBatch(id: string) {
   if (!productId || num(batch["Кг"]) <= 0) throw new Error("У партии должны быть товар и положительный вес");
   const product = await readOne("products", String(productId), ["Кг в коробке"]);
   const kgPerBox = num(product["Кг в коробке"]);
-  if (kgPerBox <= 0) throw new Error("У товара не задано поле «Кг в коробке»");
   const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Bishkek", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   await update("batches", id, writable("batches", { "Статус": "На складе", "Дата прибытия": today }));
   try {
     const movement = await create("movements", writable("movements", {
       "Дата": today, "Тип": "Приход", "Товар": productId, "Партия": id,
-      "Кг": num(batch["Кг"]), "Коробки": num(batch["Кг"]) / kgPerBox,
+      "Кг": num(batch["Кг"]), "Коробки": kgPerBox > 0 ? num(batch["Кг"]) / kgPerBox : null,
       // stock is valued at the planned sale price, like the «цена» column of the Excel warehouse sheets
       "Цена сом/кг": num(batch["Цена продажи сом/кг"]),
       "Цена плановая продажная, сом/кг": num(batch["Цена продажи сом/кг"]),
@@ -415,7 +441,7 @@ export async function receiveBatch(id: string) {
     }));
     return movement.id;
   } catch (error) {
-    try { await update("batches", id, writable("batches", { "Статус": batch["Статус"], "Дата прибытия": batch["Дата прибытия"] ? String(batch["Дата прибытия"]).slice(0, 10) : null })); }
+    try { await update("batches", id, writable("batches", { "Статус": batch["Статус"], "Дата прибытия": batch["Дата прибытия"] ? localDay(batch["Дата прибытия"]) : null })); }
     catch { throw new Error("Приход не создан, а статус партии не удалось восстановить. Проверьте партию вручную."); }
     throw error;
   }

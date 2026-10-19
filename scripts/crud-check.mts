@@ -36,7 +36,7 @@ try {
 
   // movements: receipt + shipment, edit, delete
   const receipt = track("movements", await createMovement({ "Дата": "2026-10-15", "Тип": "Приход", "Товар": product, "Кг": 100, "Коробки": 10, "Цена сом/кг": 200, "Цена плановая продажная, сом/кг": 200 }));
-  await sleep(6000); // Tablox recomputes the stock a few seconds after the receipt
+  // no pause: the stock check counts the movements themselves, not the lagging rollup
   const shipment = track("movements", await createMovement({ "Дата": "2026-10-15", "Тип": "Отгрузка", "Товар": product, "Контрагент": contact, "Кг": 40, "Коробки": 4, "Цена сом/кг": 210 }));
   d = await load();
   ok("остаток после прихода и отгрузки = 60 кг", n(find(d, "products", product)?.["Остаток, кг"]) === 60, String(find(d, "products", product)?.["Остаток, кг"]));
@@ -46,6 +46,9 @@ try {
   d = await load();
   ok("после изменения отгрузки остаток = 50 кг", n(find(d, "products", product)?.["Остаток, кг"]) === 50, String(find(d, "products", product)?.["Остаток, кг"]));
   ok("после изменения отгрузки долг = 1000 + 50 × 210", n(find(d, "contacts", contact)?.["Баланс"]) === 11500, String(find(d, "contacts", contact)?.["Баланс"]));
+  await rejects("приход с отгрузками не удаляется (остаток ушёл бы в минус)", () => deleteEntity("movements", receipt), /отрицательным/);
+  await rejects("приход нельзя уменьшить ниже отгруженного", () => updateMovement(receipt, { "Дата": "2026-10-15", "Товар": product, "Кг": 30, "Цена сом/кг": 200, "Цена плановая продажная, сом/кг": 200, "В расчёт с контрагентом": false }), /отрицательным/);
+  await rejects("отрицательная цена в партии отклонена", () => saveBatch({ "Номер партии": "ТЕСТ-МИНУС", "Страна": "Китай", "Товар": product, "Кг": -5 }), /не может быть отрицательным/);
   await rejects("товар с движениями не удаляется", () => deleteEntity("products", product), /ссылаются 2 движений/);
   await rejects("контрагент с отгрузкой не удаляется", () => deleteEntity("contacts", contact), /ссылаются/);
 
