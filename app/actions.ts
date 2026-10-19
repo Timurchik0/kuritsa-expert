@@ -18,7 +18,7 @@ import requests from "@/schema/requests.json";
 import snapshots from "@/schema/snapshots.json";
 import audit from "@/schema/audit.json";
 import { currentUser } from "@/lib/session";
-import { calculateSummary } from "./finance";
+import { calculateSummary, datasetAsOf } from "./finance";
 
 const schemas = { products, accounts, contacts, batches, movements, payments, taxes, reconciliations, settings, entities, quotas, licenses, requests, snapshots } as const;
 export type TableKey = keyof typeof schemas;
@@ -442,14 +442,17 @@ export async function payTax(taxId: string, accountId: string, amount: number, p
 }
 
 // Freezes the current summary («баланс денег») as a dated row; one app snapshot per day (a repeat updates it).
-export async function saveSnapshot(comment = "") {
+// The summary at the end of `date` (ГГГГ-ММ-ДД, default today) is stored as a snapshot; one per day (a repeat updates it).
+export async function saveSnapshot(comment = "", date = "") {
   if (typeof comment !== "string" || comment.length > 2000) throw new Error("Слишком длинный комментарий");
-  const keys: TableKey[] = ["accounts", "contacts", "batches", "products", "taxes", "settings"];
+  const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Bishkek", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const day = date ? isoDate(date) : today;
+  if (day > today) throw new Error("Нельзя зафиксировать баланс на будущую дату");
+  const keys: TableKey[] = ["accounts", "contacts", "batches", "products", "taxes", "settings", "movements", "payments"];
   const loaded = await Promise.all(keys.map((key) => readWithRetry(key)));
-  const data = Object.fromEntries((Object.keys(schemas) as TableKey[]).map((key) => [key, loaded[keys.indexOf(key)] ?? []])) as Dataset;
-  const s = calculateSummary(data);
+  const live = Object.fromEntries((Object.keys(schemas) as TableKey[]).map((key) => [key, loaded[keys.indexOf(key)] ?? []])) as Dataset;
+  const s = calculateSummary(day === today ? live : datasetAsOf(live, day));
   const cents = (v: number | null) => v == null ? null : Math.round(v * 100) / 100;
-  const day = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Bishkek", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const values: Record<string, unknown> = {
     "Снимок": `Снимок из приложения · ${day.split("-").reverse().join(".")}`, "Дата": day, "Источник": "Приложение",
     "Деньги на счетах, сом": cents(s.accounts), "Остаток у контрагентов, сом": cents(s.counterparts),

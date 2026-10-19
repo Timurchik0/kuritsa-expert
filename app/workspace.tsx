@@ -17,7 +17,7 @@ import { accountInfo, contactInfo, movementInfo, paymentInfo, productInfo } from
 import SummaryView from "./summary-view";
 import SnapshotsView from "./snapshots-view";
 import { ReconciliationsView, SettingsView, TaxesView } from "./finance-views";
-import { BANK_FEE, INTERNAL_TAX, REPORT_RATE, RUSSIA_MARGIN, RUSSIA_MARGIN_DEFAULT, RUSSIA_SALES_TAX, RUSSIA_VAT, batchEstimates, calculateSummary, kgPerBox, setting, supplierPaidSom } from "./finance";
+import { BANK_FEE, INTERNAL_TAX, REPORT_RATE, RUSSIA_MARGIN, RUSSIA_MARGIN_DEFAULT, RUSSIA_SALES_TAX, RUSSIA_VAT, batchEstimates, datasetAsOf, calculateSummary, kgPerBox, setting, supplierPaidSom } from "./finance";
 import { createMovement, deleteEntity as removeEntity, loadAffected, loadTables, payTax, receiveBatch, saveBatch, saveRecord, saveSnapshot, updateMovement, type DataResult, type Dataset, type Row, type TableKey, type TablesResult } from "./actions";
 import WarehouseView from "./warehouse-view";
 import BatchesList from "./batches-list";
@@ -187,6 +187,7 @@ export default function Workspace({ initial, user }: { initial: DataResult; user
   const [periodTo, setPeriodTo] = useState("");
   const [moneyTab, setMoneyTab] = useState<"payments" | "taxes" | "reconciliations" | "entities" | "settings">("payments");
   const [batchView, setBatchView] = useState<"kanban" | "list">("kanban");
+  const [asOf, setAsOf] = useState("");
   const [editor, setEditor] = useState<{ kind: EditKind; row: Row | null; defaults?: Entry; warning?: string } | null>(null);
   const [confirmBatchDelete, setConfirmBatchDelete] = useState(false);
   const [batchCountry, setBatchCountry] = useState<"Китай" | "РФ">("Китай");
@@ -396,13 +397,16 @@ export default function Workspace({ initial, user }: { initial: DataResult; user
     refreshLater(["products"]);
   }
   const takeSnapshot = () => run((d) => d, async () => {
-    await saveSnapshot();
+    await saveSnapshot("", asOf);
     await refreshData(["snapshots"], () => loadTables(["snapshots"]), false);
   }, "Баланс зафиксирован", [], false);
   const linkName = (key: "products" | "contacts" | "accounts" | "batches", id: unknown) => label(data[key], id);
   const setPage = (page: Section) => { setSection(page); setMobileNav(false); setSelectedContact(null); setSearch(""); };
 
   const summary = calculateSummary(data);
+  // the summary can be looked at as of an earlier day: balances rebuilt from operations dated up to that day
+  const summaryData = useMemo(() => asOf ? datasetAsOf(data, asOf) : data, [asOf, data]);
+  const summaryView = asOf ? calculateSummary(summaryData) : summary;
   const customers = data.contacts.filter((c) => (typeFilter === "Все" || c["Тип"] === typeFilter) && text(c["Название"]).toLocaleLowerCase("ru").includes(search.toLocaleLowerCase("ru"))).filter((c) => !statusFilter || settlementStatus(n(c["Баланс"])) === statusFilter).sort((a, b) => sortBalance ? n(b["Баланс"]) - n(a["Баланс"]) : text(a["Название"]).localeCompare(text(b["Название"]), "ru"));
   const visiblePayments = data.payments.filter((r) => (!accountFilter || r["СчётId"] === accountFilter) && (!categoryFilter || r["Категория"] === categoryFilter) && (!directionFilter || r["Направление"] === directionFilter) && (!periodFrom || dateInput(r["Дата"]) >= periodFrom) && (!periodTo || dateInput(r["Дата"]) <= periodTo)).sort((a, b) => text(b["Дата"]).localeCompare(text(a["Дата"])));
   const ledger = useMemo(() => {
@@ -540,8 +544,8 @@ export default function Workspace({ initial, user }: { initial: DataResult; user
       <main className="mx-auto max-w-[1500px] px-4 py-7 sm:px-6 lg:px-9 lg:py-8">
         {Object.keys(result.errors).length > 0 && <div className="mb-5 flex items-center justify-between gap-2 rounded border border-[#e9c9a4] bg-[#fff9ee] p-3 text-sm text-[#8d5b2d]">Часть данных не обновилась. Показаны последние доступные значения.<button onClick={refresh} className="underline">Повторить</button></div>}
         {section === "summary" && <>
-          <Title title="Сводка бизнеса" subtitle="Деньги, обязательства и товарный запас на сегодня" />
-          {fail(["accounts", "contacts", "products", "batches", "taxes", "settings"]) ? <Empty message="Сводка недоступна: ошибка загрузки одного из источников" /> : <><SummaryView data={data} summary={summary} onOpenContact={(c) => { setSection("clients"); setSelectedContact(c); }} onOpenBatch={(b) => open("batch", {}, b)} /><SnapshotsView rows={data.snapshots} summary={summary} busy={busy} onSnapshot={takeSnapshot} onEdit={(row) => edit("snapshots", row)} /></>}
+          <Title title="Сводка бизнеса" subtitle={asOf ? `Деньги, обязательства и товарный запас на конец дня ${date(`${asOf}T12:00:00+06:00`)}` : "Деньги, обязательства и товарный запас на сегодня"} action={<label className="flex items-center gap-2 text-xs text-[#65746e]">Баланс на дату<input type="date" aria-label="Баланс на дату" max={today()} value={asOf} onChange={(e) => setAsOf(e.target.value && e.target.value < today() ? e.target.value : "")} className="h-9 rounded border border-[#dbe2df] bg-white px-2 text-sm text-[#22332f] outline-none focus:border-[#178779]" />{asOf && <button type="button" className="text-[#147d6e] hover:underline" onClick={() => setAsOf("")}>Сегодня</button>}</label>} />
+          {fail(["accounts", "contacts", "products", "batches", "taxes", "settings"]) ? <Empty message="Сводка недоступна: ошибка загрузки одного из источников" /> : <><SummaryView data={summaryData} summary={summaryView} onOpenContact={(c) => { setSection("clients"); setSelectedContact(c); }} onOpenBatch={(b) => open("batch", {}, b)} /><SnapshotsView rows={data.snapshots} summary={summaryView} asOf={asOf} busy={busy} onSnapshot={takeSnapshot} onEdit={(row) => edit("snapshots", row)} /></>}
         </>}
         {section === "batches" && <><Title title="Партии" subtitle={`${batchCountry} · партий: ${groupByNumber(countryBatches).length} · движение от предоплаты до продажи`} action={<div className="flex items-center gap-2"><div className="flex rounded border border-[#dce6de] bg-white p-1">{([["kanban", "Канбан", Columns3], ["list", "Список", List]] as const).map(([key, title, Icon]) => <button key={key} onClick={() => setBatchView(key)} className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-xs ${batchView === key ? "bg-[#e5f2eb] font-semibold text-[#14745f]" : "text-[#708177]"}`}><Icon size={14} />{title}</button>)}</div><Action variant="outline" onClick={() => open("estimate")}><Calculator size={16} /> Предварительная калькуляция</Action><Action onClick={() => open("batch")}><Plus size={16} /> Новая партия</Action></div>} /><div className="mb-4"><Segmented<"Китай" | "РФ"> value={batchCountry} onChange={setBatchCountry} items={[{ value: "Китай", title: "Китай" }, { value: "РФ", title: "РФ" }]} /></div>{fail(["batches"]) ? <Empty message="Не удалось загрузить партии" /> : batchView === "list" ? <BatchesList data={{ ...data, batches: countryBatches }} stages={stages} onOpen={(b) => open("batch", {}, b)} onAddProduct={addProductToBatch} /> : <div className="flex min-h-[560px] gap-3 overflow-x-auto pb-5">{stages.map((stage, i) => { const list = countryBatches.filter((b) => b["Статус"] === stage).sort((a, b) => stage === "Продана" ? dateInput(b["Дата прибытия"]).localeCompare(dateInput(a["Дата прибытия"])) : 0); return <div key={stage} className="w-[255px] min-w-[255px] rounded-md bg-[#eef2f0] p-2.5" onDragOver={(e) => e.preventDefault()} onDrop={() => { if (dragged) moveBatch(dragged, stage); setDragged(null); }}><div className="mb-3 flex items-center gap-2 px-1.5 py-1 text-xs font-semibold"><span className={`h-2 w-2 rounded-full ${["bg-[#ca9b59]", "bg-[#5e9eb2]", "bg-[#b79a6d]", "bg-[#298d70]", "bg-[#889990]"][i]}`} />{stage}<span className="ml-auto rounded bg-white px-1.5 py-0.5 text-[11px] text-[#728079]">{list.length}</span></div><div className="max-h-[75vh] space-y-2 overflow-y-auto pr-0.5">{groupByNumber(list).map((group) => group.length === 1 ? batchCard(group[0], stage) : batchGroupCard(group, stage))}</div></div>; })}</div>}</>}
         {section === "warehouse" && <><Title title="Склад" subtitle="Остатки и движения товара" action={<div className="flex gap-2"><Action variant="outline" onClick={() => edit("products")}><Plus size={16} /> Новый товар</Action><Action variant="outline" onClick={() => open("receipt", { "Тип": "Приход" })}><Plus size={16} /> Приход</Action><Action onClick={() => open("shipment", { "Тип": "Отгрузка" })}><Truck size={16} /> Отгрузка клиенту</Action></div>} />{fail(["products", "movements"]) ? <Empty message="Не удалось загрузить склад" /> : <WarehouseView data={data} onEditProduct={(p) => edit("products", p)} onEditMovement={(m) => edit("movements", m, undefined, m["Тип"] === "Приход" && m["ПартияId"] ? "Это приход по партии: при изменении веса проверьте и саму партию" : undefined)} />}</>}

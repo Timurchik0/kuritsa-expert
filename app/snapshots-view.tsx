@@ -15,17 +15,17 @@ const td = "whitespace-nowrap px-3 py-3 text-sm";
 type Attachment = { name?: string; presignedUrl?: string };
 type Line = { id: string; date: unknown; title: string; source: string; turnover: number; loans: number; capital: number; taxes: number; capitalUsd: unknown; realUsd: unknown; files: Attachment[]; live?: boolean };
 
-export default function SnapshotsView({ rows, summary: s, busy, onSnapshot, onEdit }: { rows: Row[]; summary: ReturnType<typeof calculateSummary>; busy: boolean; onSnapshot: () => void; onEdit: (row: Row) => void }) {
+export default function SnapshotsView({ rows, summary: s, asOf = "", busy, onSnapshot, onEdit }: { rows: Row[]; summary: ReturnType<typeof calculateSummary>; asOf?: string; busy: boolean; onSnapshot: () => void; onEdit: (row: Row) => void }) {
   const saved: Line[] = [...rows].sort((a, b) => String(b["Дата"] ?? "").localeCompare(String(a["Дата"] ?? ""))).map((row) => ({
     id: row.id, date: row["Дата"], title: String(row["Снимок"] ?? ""), source: String(row["Источник"] ?? ""),
     turnover: amount(row["Деньги в обороте, сом"]), loans: amount(row["Займы (нетто), сом"]), capital: amount(row["Капитал, сом"]), taxes: amount(row["Налоги к уплате, сом"]),
     capitalUsd: row["Капитал, $"], realUsd: row["Реальный остаток, $"], files: Array.isArray(row["Исходный файл"]) ? row["Исходный файл"] as Attachment[] : [],
   }));
-  const lines: Line[] = [{ id: "live", date: new Date().toISOString(), title: "Сейчас", source: "Приложение", turnover: s.turnover, loans: s.loans, capital: s.capital, taxes: s.taxes, capitalUsd: s.capitalUsd, realUsd: s.realUsd, files: [], live: true }, ...saved];
+  const lines: Line[] = [{ id: "live", date: asOf ? `${asOf}T12:00:00+06:00` : new Date().toISOString(), title: "Сейчас", source: "Приложение", turnover: s.turnover, loans: s.loans, capital: s.capital, taxes: s.taxes, capitalUsd: s.capitalUsd, realUsd: s.realUsd, files: [], live: true }, ...saved].sort((x, y) => ((new Date(String(y.date)).getTime() || 0) - (new Date(String(x.date)).getTime() || 0)) || (x.live ? -1 : 1));
   return <section className="mt-8">
     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
       <div><h2 className="flex items-center gap-2 text-base font-semibold">История баланса<CalcInfo label="История баланса" formula="Снимок фиксирует значения сводки на дату: деньги в обороте, займы, капитал, налоги и реальный остаток. Изменение — разница капитала со следующим более ранним снимком." substitution={`${saved.length} сохранённых снимков + текущие данные`} source="Снимки баланса" excel="лист «баланс денег»: F16, B16, I16, J16, K16" /></h2><div className="mt-0.5 max-w-[640px] text-xs text-[#8b998f]">Кнопка сохраняет сегодняшние цифры сводки в эту таблицу, чтобы потом видеть, как менялся капитал. Ничего не скачивает и данные не меняет; повторное нажатие в тот же день обновляет снимок.</div></div>
-      <Button size="sm" className="bg-[#147d6e] hover:bg-[#10675b]" disabled={busy} onClick={onSnapshot}><Camera size={15} /> Зафиксировать баланс</Button>
+      <Button size="sm" className="bg-[#147d6e] hover:bg-[#10675b]" disabled={busy} onClick={onSnapshot}><Camera size={15} /> {asOf ? `Зафиксировать баланс на ${shownDate(`${asOf}T12:00:00+06:00`)}` : "Зафиксировать баланс"}</Button>
     </div>
     <div className="overflow-x-auto rounded-md border border-[#e1e7e4] bg-white"><table className="w-full min-w-[1080px]"><thead className="border-b bg-[#fbfcfb]"><tr>{["Дата", "Снимок", "Деньги в обороте", "Займы (нетто)", "Капитал", "Капитал, $", "Налоги к уплате", "Реальный остаток, $", "Изменение капитала", "Файл"].map((h, i) => <th key={h} className={`${th} ${i >= 2 && i <= 8 ? "text-right" : ""}`}>{h}</th>)}</tr></thead>
       <tbody>{lines.map((line, i) => {
@@ -33,7 +33,7 @@ export default function SnapshotsView({ rows, summary: s, busy, onSnapshot, onEd
         const delta = previous ? line.capital - previous.capital : null;
         return <tr key={line.id} className={`border-b last:border-0 ${line.live ? "bg-[#f3faf6]" : "cursor-pointer hover:bg-[#f5faf7]"}`} onClick={(e) => { const row = rows.find((r) => r.id === line.id); if (row && !(e.target as HTMLElement).closest("a,button")) onEdit(row); }}>
           <td className={`${td} whitespace-nowrap text-[#7d8b81]`}>{shownDate(line.date)}</td>
-          <td className={td}><div className="font-medium">{line.live ? "Сейчас" : line.source === "Excel" ? "Исходный Excel клиента" : "Зафиксировано"}</div><div className="text-[11px] text-[#8b998f]">{line.live ? "живые цифры сводки" : line.source === "Excel" ? "лист «баланс денег»" : "кнопкой «Зафиксировать баланс»"}</div></td>
+          <td className={td}><div className="font-medium">{line.live ? (asOf ? "На выбранную дату" : "Сейчас") : line.source === "Excel" ? "Исходный Excel клиента" : "Зафиксировано"}</div><div className="text-[11px] text-[#8b998f]">{line.live ? (asOf ? "расчёт на эту дату" : "живые цифры сводки") : line.source === "Excel" ? "лист «баланс денег»" : "кнопкой «Зафиксировать баланс»"}</div></td>
           <td className={`${td} text-right tabular-nums`}>{som(line.turnover)}</td>
           <td className={`${td} text-right tabular-nums`}>{som(line.loans)}</td>
           <td className={`${td} text-right font-semibold tabular-nums`}>{som(line.capital)}</td>
