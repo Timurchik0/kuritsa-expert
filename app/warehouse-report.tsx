@@ -36,7 +36,7 @@ export default function WarehouseReport({ data }: { data: Dataset }) {
     const lines = new Map<string, Line>();
     for (const m of inside.filter((m) => m["Тип"] !== "Приход")) {
       const title = m["Тип"] === "Отгрузка" ? labelOf(data.contacts, m["КонтрагентId"]) : `${text(m["Тип"])}${m["Комментарий"] ? ` · ${text(m["Комментарий"])}` : ""}`;
-      const key = `${day(m)}|${title}`;
+      const key = `${day(m)}|${m["Тип"] === "Отгрузка" ? String(m["КонтрагентId"] ?? "") : title}`;
       const line = lines.get(key) ?? { key, day: day(m), title, cells: new Map(), total: 0 };
       add(line.cells, String(m["ТоварId"]), n(m["Коробки"]), n(m["Кг"]), n(m["Сумма, сом"]));
       line.total += n(m["Сумма, сом"]);
@@ -75,7 +75,7 @@ export default function WarehouseReport({ data }: { data: Dataset }) {
       const book = new ExcelJS.Workbook();
       const sheet = book.addWorksheet(oneDay ? date(from) : "Склад", { views: [{ state: "frozen", xSplit: oneDay ? 1 : 2, ySplit: 2 }] });
       const lead = oneDay ? 1 : 2, sumCol = lead + report.products.length * 3 + 1;
-      const thin = { style: "thin" as const, color: { argb: "FF9E9E9E" } };
+      const thin = { style: "thin" as const, color: { argb: "FF000000" } };
       const blue = { type: "pattern" as const, pattern: "solid" as const, fgColor: { argb: "FFDCE6F1" } };
       const green = { type: "pattern" as const, pattern: "solid" as const, fgColor: { argb: "FFEAF4EC" } };
       const at = (row: number, col: number) => sheet.getCell(row, col);
