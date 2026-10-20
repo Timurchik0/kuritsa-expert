@@ -85,8 +85,28 @@ export function kgPerBox(product: Row | undefined): number | null {
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
-// ── balance at a date ──
 const transitStatuses = ["Предоплата", "В пути", "На таможне"];
+
+/**
+ * Money a supplier got before the app (its balance beyond the cash advances, e.g. the opening prepayment) spread over its
+ * batches still on the way — earliest prepayment first, each up to its purchase sum not yet paid by cash. For display on
+ * the batch: the supplier's balance already counts this money, so nothing is added to the summary.
+ */
+export function prepaidShares(data: Pick<Dataset, "contacts" | "batches">): Record<string, number> {
+  const shares: Record<string, number> = {};
+  for (const supplier of data.contacts.filter((c) => c["Тип"] === "Поставщик")) {
+    const batches = data.batches.filter((b) => b["ПоставщикId"] === supplier.id && transitStatuses.includes(String(b["Статус"])))
+      .sort((a, b) => String(a["Дата предоплаты"] ?? "9").localeCompare(String(b["Дата предоплаты"] ?? "9")) || String(a["Номер партии"] ?? "").localeCompare(String(b["Номер партии"] ?? ""), "ru", { numeric: true }));
+    let left = amount(supplier["Баланс"]) - batches.reduce((sum, b) => sum + amount(b["Аванс поставщику (в пути), сом"]), 0);
+    for (const b of batches) {
+      const share = Math.max(0, Math.min(left, amount(b["Оплачено поставщику, сом"]) - amount(b["Оплачено по кассе, сом"])));
+      if (share > 0.005) { shares[b.id] = share; left -= share; }
+    }
+  }
+  return shares;
+}
+
+// ── balance at a date ──
 /** ГГГГ-ММ-ДД of a stored date in Bishkek time ("" if empty). */
 export const localDay = (value: unknown) => value ? new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Bishkek", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(String(value))) : "";
 
