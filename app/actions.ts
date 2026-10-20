@@ -415,7 +415,11 @@ export async function createMovement(input: Record<string, unknown>) {
     // a receipt without a planned sale price is valued at its own price, so stock is never booked at 0
     const plan = num(input["Цена плановая продажная, сом/кг"]) || num(input["Цена сом/кг"]);
     if (plan <= 0) throw new Error("Укажите цену или плановую цену продажи");
-    input = { ...input, "Цена плановая продажная, сом/кг": plan, "В расчёт с контрагентом": false };
+    // goods paid to a supplier earlier (e.g. in the opening prepayment) and received without a batch:
+    // the purchase amount leaves the supplier's balance; stock is still valued at the planned sale price
+    const closesPrepayment = Boolean(input["Контрагент"]) && !input["Партия"] && num(input["Сумма вручную"]) > 0;
+    if (input["Контрагент"] && !input["Партия"] && !closesPrepayment) throw new Error("Укажите сумму закупки — она уйдёт из расчётов с поставщиком");
+    input = { ...input, "Цена плановая продажная, сом/кг": plan, "В расчёт с контрагентом": closesPrepayment, ...(closesPrepayment ? {} : { "Сумма вручную": null }) };
   }
   const result = await create("movements", writable("movements", input));
   return result.id;
