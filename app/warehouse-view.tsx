@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { CalcInfo } from "./calc-info";
 import type { Dataset, Row } from "./actions";
 import { deviationInfo, movementInfo, productInfo } from "./record-info";
-import { Pager, PeriodInputs, SearchSelect, SortDirection, date, fmt, inPeriod, labelOf, n, panel, som, td, text, th } from "./ui-kit";
+import { Pager, PeriodInputs, SearchSelect, Segmented, SortDirection, date, fmt, inPeriod, labelOf, n, panel, som, td, text, th } from "./ui-kit";
+import WarehouseReport from "./warehouse-report";
 
 const PAGE = 50;
 const outgoing = (row: Row) => row["Тип"] !== "Приход";
@@ -21,6 +22,7 @@ export default function WarehouseView({ data, onEditProduct, onEditMovement }: {
   const [sortBy, setSortBy] = useState("date");
   const [desc, setDesc] = useState(true);
   const [page, setPage] = useState(0);
+  const [view, setView] = useState<"journal" | "report">("journal");
   const withKg = data.movements.filter((row) => n(row["Кг"]) > 0);
   const received = withKg.filter((row) => row["Тип"] === "Приход").reduce((sum, row) => sum + n(row["Кг"]), 0);
   const shipped = withKg.filter(outgoing).reduce((sum, row) => sum + n(row["Кг"]), 0);
@@ -82,7 +84,8 @@ export default function WarehouseView({ data, onEditProduct, onEditMovement }: {
       </div>;
     })}</div>
 
-    <h2 className="mb-3 text-base font-semibold">Журнал движений <span className="text-sm font-normal text-[#8b998f]">· {rows.length} записей</span></h2>
+    <div className="mb-3 flex flex-wrap items-center gap-3"><Segmented<"journal" | "report"> value={view} onChange={setView} items={[{ value: "journal", title: "Журнал движений" }, { value: "report", title: "Отчёт за день / период" }]} />{view === "journal" && <span className="text-sm text-[#8b998f]">{rows.length} записей</span>}</div>
+    {view === "report" ? <WarehouseReport data={data} /> : <>
     <div className="mb-3 flex flex-wrap items-center gap-2">
       <div className="relative min-w-[200px] flex-1 md:max-w-xs"><Search size={16} className="absolute left-3 top-2.5 text-[#95a39a]" /><Input className="pl-9" placeholder="Поиск: контрагент, партия, комментарий" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} /></div>
       <SearchSelect name="Позиция" value={product} onChange={(v) => { setProduct(v); setPage(0); }} items={data.products.map((p) => ({ value: p.id, title: text(p["Название"]) }))} placeholder="Все позиции" className="w-48" />
@@ -112,5 +115,6 @@ export default function WarehouseView({ data, onEditProduct, onEditMovement }: {
         </tr>;
       })}</tbody></table>{!rows.length && <div className="p-8 text-center text-sm text-[#86958b]">Нет движений по фильтрам</div>}</div>
     <Pager page={page} size={PAGE} total={rows.length} onPage={setPage} />
+    </>}
   </>;
 }
