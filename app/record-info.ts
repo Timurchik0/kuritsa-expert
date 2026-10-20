@@ -22,8 +22,8 @@ export function productInfo(row: Row, key: string, movements: Row[]) {
 }
 
 export function contactInfo(row: Row) {
-  const initial = amount(row["Сальдо на начало"]), shipments = amount(row["Отгрузки в долг"]), payments = amount(row["Платежи в расчёт"]), advances = amount(row["Авансы за партии в пути"]);
-  return { formula: "Сальдо на начало + отгрузки в долг − оплаты + выданные ему деньги + авансы за партии в пути", substitution: `${money(initial)} + ${money(shipments)} + (${money(payments)} — платежи с учётом знака) + ${money(advances)} = ${money(row["Баланс"])}`, source: `Контрагенты: ${String(row["Название"])}; движения, платежи и связанные партии`, excel: "Лист контрагента!H2" };
+  const initial = amount(row["Сальдо на начало"]), shipments = amount(row["Отгрузки в долг"]), payments = amount(row["Платежи в расчёт"]), advances = amount(row["Авансы за партии в пути"]), via = amount(row["Через кассы (взаиморасчёт)"]);
+  return { formula: `Сальдо на начало + отгрузки в долг − оплаты + выданные ему деньги + авансы за партии в пути${via ? " + приходы − расходы по его кассам" : ""}`, substitution: `${money(initial)} + ${money(shipments)} + (${money(payments)} — платежи с учётом знака) + ${money(advances)}${via ? ` + (${money(via)} — по его кассам)` : ""} = ${money(row["Баланс"])}`, source: `Контрагенты: ${String(row["Название"])}; движения, платежи и связанные партии`, excel: "Лист контрагента!H2" };
 }
 
 export function accountInfo(row: Row, payments: Row[]) {

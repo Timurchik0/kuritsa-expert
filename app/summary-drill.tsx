@@ -23,8 +23,8 @@ const transit = ["Предоплата", "В пути", "На таможне"];
 export function buildDrill(key: DrillKey, data: Dataset, s: Summary, open: { contact: (row: Row) => void; batch: (row: Row) => void }): Drill {
   const byValue = (a: Line, b: Line) => Math.abs(b.value) - Math.abs(a.value);
   const contactLine = (c: Row): Line => ({ key: c.id, value: amount(c["Баланс"]), open: () => open.contact(c),
-    cells: [text(c["Название"]), som(c["Сальдо на начало"]), som(c["Отгрузки в долг"]), som(c["Платежи в расчёт"]), som(c["Авансы за партии в пути"]), som(c["Баланс"])] });
-  const contactColumns = ["Контрагент", "Сальдо на начало", "Отгрузки в долг", "Платежи", "Авансы за партии", "Баланс"];
+    cells: [text(c["Название"]), som(c["Сальдо на начало"]), som(c["Отгрузки в долг"]), som(c["Платежи в расчёт"]), som(c["Авансы за партии в пути"]), som(c["Через кассы (взаиморасчёт)"]), som(c["Баланс"])] });
+  const contactColumns = ["Контрагент", "Сальдо на начало", "Отгрузки в долг", "Платежи", "Авансы за партии", "По его кассам", "Баланс"];
   const contacts = (type: string) => data.contacts.filter((c) => c["Тип"] === type && Math.abs(amount(c["Баланс"])) >= 0.005).map(contactLine).sort(byValue);
   const group = (title: string, columns: string[], lines: Line[], note?: string): Group => ({ title, columns, lines, total: lines.reduce((sum, l) => sum + l.value, 0), note });
 

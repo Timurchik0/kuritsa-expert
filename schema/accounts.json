@@ -151,6 +151,26 @@
       "isLookup": null,
       "isComputed": true,
       "isMultipleCellValue": false
+    },
+    {
+      "id": "fldx9XIIifW6ZKXx7qE",
+      "name": "Взаиморасчёт с контрагентом",
+      "dbFieldName": "Vzaimoraschyot_s_kontragentom",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "manyOne",
+        "foreignTableId": "tblxrCa3oK3bqkCZGbH",
+        "lookupFieldId": "fld4a8gsR09nAxVxxnf",
+        "isOneWay": true,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tbl2f7201QsDT4xfzSP",
+        "selfKeyName": "__id",
+        "foreignKeyName": "__fk_fldx9XIIifW6ZKXx7qE"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
     }
   ]
 }

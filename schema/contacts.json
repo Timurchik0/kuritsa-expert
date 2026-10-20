@@ -242,7 +242,7 @@
       "type": "formula",
       "description": "Сальдо на начало + отгрузки в долг − оплаты (+ выданные ему деньги) + авансы за партии в пути. «+» — должен нам / наши деньги у него, «−» — мы должны.",
       "options": {
-        "expression": "{fldY2r5Yhh5abvX0nOy}+{fldp4Yc3Odhno2qhucx}+{fldeC3ylo7wJBOE706L}+{fldC1Nsw7Gzu5SN0svG}",
+        "expression": "{fldY2r5Yhh5abvX0nOy}+{fldp4Yc3Odhno2qhucx}+{fldeC3ylo7wJBOE706L}+{fldC1Nsw7Gzu5SN0svG}+{fld1Gw88MRs1oQRGs4T}",
         "timeZone": "Asia/Bishkek",
         "formatting": {
           "type": "decimal",
@@ -265,6 +265,66 @@
         "timeZone": "utc"
       },
       "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldOSWgEspGtZqz5KFi",
+      "name": "Платежи по его кассам",
+      "dbFieldName": "Platezhi_linked",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "oneMany",
+        "foreignTableId": "tbl8AoZg8hkOqMBar6d",
+        "lookupFieldId": "fldEdCoWH6jjXVy98KO",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tbl8AoZg8hkOqMBar6d",
+        "selfKeyName": "__fk_fld84bZTb8j8sUzRaj8",
+        "foreignKeyName": "__id",
+        "symmetricFieldId": "fld84bZTb8j8sUzRaj8"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": true
+    },
+    {
+      "id": "fldMNfS8AAJAmhWafcv",
+      "name": "Платежи (linked)",
+      "dbFieldName": "Platezhi_linked_2",
+      "type": "link",
+      "description": null,
+      "options": {
+        "relationship": "oneMany",
+        "foreignTableId": "tbl8AoZg8hkOqMBar6d",
+        "lookupFieldId": "fldEdCoWH6jjXVy98KO",
+        "isOneWay": false,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tbl8AoZg8hkOqMBar6d",
+        "selfKeyName": "__fk_fldEs1afwSTo4DZCxYQ",
+        "foreignKeyName": "__id",
+        "symmetricFieldId": "fldEs1afwSTo4DZCxYQ"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": true
+    },
+    {
+      "id": "fld1Gw88MRs1oQRGs4T",
+      "name": "Через кассы (взаиморасчёт)",
+      "dbFieldName": "Cherez_kassy_vzaimoraschyot",
+      "type": "rollup",
+      "description": null,
+      "options": {
+        "expression": "sum({values})",
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
       "isLookup": null,
       "isComputed": true,
       "isMultipleCellValue": false

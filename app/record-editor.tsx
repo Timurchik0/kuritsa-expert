@@ -26,7 +26,8 @@ export const EDITORS: Record<EditKind, { table: TableKey; singular: string; crea
     { name: "Телефон", kind: "text" }, { name: "Сальдо на начало", kind: "signed", label: "Сальдо на начало, сом («+» — должен нам)" }, comment] },
   accounts: { table: "accounts", singular: "счёт", created: "Счёт добавлен", fields: [
     { name: "Название", kind: "text", required: true }, { name: "Юрлицо", kind: "select", options: list("ОсОО «Эксперт компани»", "ИП Мырзабеков", "Фудторг", "Бонвивант", "Юни Трейд Компани", "Фуд Бридж", "ИП Наргиза", "Наличные у сотрудников") },
-    { name: "Тип", kind: "select", options: list("Банк", "Наличные") }, { name: "Остаток на начало", kind: "signed", label: "Остаток на начало, сом" }, { name: "Учитывать в сводке", kind: "checkbox" }, comment] },
+    { name: "Тип", kind: "select", options: list("Банк", "Наличные") }, { name: "Остаток на начало", kind: "signed", label: "Остаток на начало, сом" }, { name: "Учитывать в сводке", kind: "checkbox" },
+    { name: "Взаиморасчёт с контрагентом", kind: "select", options: contactsGrouped, wide: true, label: "Взаиморасчёт с контрагентом (приходы на счёт увеличивают его баланс, расходы уменьшают — например, кассы ИП Мырзабеков)" }, comment] },
   entities: { table: "entities", singular: "юрлицо", created: "Юрлицо добавлено", fields: [
     { name: "Название", kind: "text", required: true }, { name: "Форма", kind: "select", options: list("ОсОО", "ИП") }, { name: "ИНН", kind: "text" }, { name: "Руководитель", kind: "text" },
     { name: "Юридический адрес", kind: "text", wide: true }, { name: "Склад", kind: "text" }, { name: "Разрешение ЕАЭС", kind: "text" }, comment] },
@@ -58,7 +59,7 @@ export const EDITORS: Record<EditKind, { table: TableKey; singular: string; crea
   snapshots: { table: "snapshots", singular: "снимок баланса", created: "Снимок сохранён", fields: [comment] },
 };
 
-const LINKS = new Set(["Товар", "Партия", "Контрагент", "Счёт", "Юрлицо", "Квота", "Лицензия"]);
+const LINKS = new Set(["Товар", "Партия", "Контрагент", "Счёт", "Юрлицо", "Квота", "Лицензия", "Взаиморасчёт с контрагентом"]);
 /** Form values of an existing record (links → their id, dates → ГГГГ-ММ-ДД). */
 export function formOf(kind: EditKind, row: Row | null): Record<string, unknown> {
   const out: Record<string, unknown> = {};

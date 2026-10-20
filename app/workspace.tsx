@@ -416,9 +416,10 @@ export default function Workspace({ initial, user }: { initial: DataResult; user
     if (!activeContact) return [];
     const movements = data.movements.filter((r) => r["КонтрагентId"] === activeContact.id && r["В расчёт с контрагентом"]).map((r) => ({ ...r, source: "Отгрузка", impact: n(r["Влияние на долг"]) }));
     const payments = data.payments.filter((r) => r["КонтрагентId"] === activeContact.id && r["В расчёт с контрагентом"]).map((r) => ({ ...r, source: "Платёж", impact: n(r["Влияние на долг"]) }));
+    const viaAccounts = data.payments.filter((r) => r["Держатель счётаId"] === activeContact.id).map((r) => ({ ...r, source: `Касса · ${label(data.accounts, r["СчётId"])}`, impact: n(r["Влияние на долг держателя"]) }));
     let running = n(activeContact["Сальдо на начало"]);
-    return [...movements, ...payments].sort((a, b) => text(a["Дата"]).localeCompare(text(b["Дата"])) || String(a.id).localeCompare(String(b.id))).map((r) => ({ ...r, running: running += r.impact }));
-  }, [data.movements, data.payments, activeContact]);
+    return [...movements, ...payments, ...viaAccounts].sort((a, b) => text(a["Дата"]).localeCompare(text(b["Дата"])) || String(a.id).localeCompare(String(b.id))).map((r) => ({ ...r, running: running += r.impact }));
+  }, [data.movements, data.payments, data.accounts, activeContact]);
   // act closing: after the last point where the balance became 0, older operations are hidden
   const closeIndex = ledger.reduce((last, r, i) => Math.abs(r.running) < 1 ? i : last, -1);
   const visibleLedger = ledger.map((r, i) => ({ r, i })).filter(({ i }) => showAllLedger || i > closeIndex);

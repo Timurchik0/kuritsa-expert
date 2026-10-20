@@ -120,7 +120,8 @@ export function datasetAsOf(data: Dataset, day: string): Dataset {
   const contacts = data.contacts.map((c) => {
     const shipped = sumBy(moves, "КонтрагентId", c.id, "Влияние на долг"), paid = sumBy(pays, "КонтрагентId", c.id, "Влияние на долг");
     const advances = batches.reduce((s, b) => b["ПоставщикId"] === c.id ? s + amount(b["Аванс поставщику (в пути), сом"]) : s, 0);
-    return { ...c, "Отгрузки в долг": shipped, "Платежи в расчёт": paid, "Авансы за партии в пути": advances, "Баланс": amount(c["Сальдо на начало"]) + shipped + paid + advances };
+    const viaAccounts = sumBy(pays, "Держатель счётаId", c.id, "Влияние на долг держателя");
+    return { ...c, "Отгрузки в долг": shipped, "Платежи в расчёт": paid, "Авансы за партии в пути": advances, "Через кассы (взаиморасчёт)": viaAccounts, "Баланс": amount(c["Сальдо на начало"]) + shipped + paid + advances + viaAccounts };
   });
   const products = data.products.map((p) => {
     const kg = sumBy(moves, "ТоварId", p.id, "Кг ±"), value = sumBy(moves, "ТоварId", p.id, "Склад ±, сом (по плановой цене)");

@@ -296,6 +296,10 @@ export async function saveRecord(key: TableKey, input: Record<string, unknown>, 
     if (!input["Счёт"] || !input["Направление"] || !input["Дата"] || num(input["Сумма"]) <= 0) throw new Error("Заполните дату, счёт, направление и положительную сумму");
     if (input["Валюта"] !== "сом" && num(input["Курс"]) <= 0) throw new Error("Укажите положительный курс валюты");
     if (input["В расчёт с контрагентом"] && !input["Контрагент"]) throw new Error("Выберите контрагента для расчёта");
+    // money on a holder's account (e.g. the «кассы ИП Мырзабеков») moves that counterparty's balance by the account flow
+    const holder = (await readOne("accounts", String(input["Счёт"]), ["Взаиморасчёт с контрагентомId"]))["Взаиморасчёт с контрагентомId"] ?? null;
+    input = { ...input, "Держатель счёта": holder };
+    if (holder && input["Контрагент"] === holder) input = { ...input, "В расчёт с контрагентом": false };
     // counted once: through the batch advance (Партии → «Оплачено по кассе»), not also in the supplier's balance
     if (input["Партия"] && input["Категория"] === "Оплата поставщику") input = { ...input, "В расчёт с контрагентом": false };
     // a supplier's balance is about goods: only «Оплата поставщику» counts; logistics, customs etc. are expenses
@@ -306,6 +310,12 @@ export async function saveRecord(key: TableKey, input: Record<string, unknown>, 
   const payload = writable(key, input);
   if (!Object.keys(payload).length) throw new Error("Нет данных для сохранения");
   const result = id ? await update(key, id, payload) : await create(key, payload);
+  if (key === "accounts" && id && Object.hasOwn(input, "Взаиморасчёт с контрагентом")) {
+    const holder = input["Взаиморасчёт с контрагентом"] || null;
+    for (const p of (await readTable("payments")).filter((p) => p["СчётId"] === id && (p["Держатель счётаId"] ?? null) !== holder)) {
+      await update("payments", p.id, writable("payments", { "Держатель счёта": holder, ...(holder && p["КонтрагентId"] === holder ? { "В расчёт с контрагентом": false } : {}) }));
+    }
+  }
   // a request linked to a batch also puts its license and quota on that batch
   if (key === "requests" && input["Партия"]) await update("batches", String(input["Партия"]), writable("batches", { "Лицензия": input["Лицензия"], ...(linkedQuota ? { "Квота": linkedQuota } : {}) }));
   return result.id;
@@ -459,8 +469,9 @@ export async function payTax(taxId: string, accountId: string, amount: number, p
   await ensureLink("accounts", accountId);
   const tax = await readOne("taxes", taxId, ["Основание", "Оплачено, сом", "Остаток к уплате, сом"]);
   if (num(tax["Остаток к уплате, сом"]) <= 0 || amount > num(tax["Остаток к уплате, сом"]) + 0.005) throw new Error("Сумма превышает остаток налога к уплате");
+  const holder = (await readOne("accounts", accountId, ["Взаиморасчёт с контрагентомId"]))["Взаиморасчёт с контрагентомId"] ?? null;
   const payment = await create("payments", writable("payments", {
-    "Дата": paymentDate, "Счёт": accountId, "Направление": "Расход", "Сумма": amount,
+    "Дата": paymentDate, "Счёт": accountId, "Направление": "Расход", "Сумма": amount, "Держатель счёта": holder,
     "Валюта": "сом", "Категория": "Налоги", "Описание": `Налог: ${String(tax["Основание"] ?? "")}`,
     "В расчёт с контрагентом": false,
   }));
