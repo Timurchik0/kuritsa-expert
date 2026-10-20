@@ -65,14 +65,79 @@ export default function WarehouseReport({ data }: { data: Dataset }) {
     { title: to ? `Остаток на конец ${date(to)}` : "Остаток на конец", cells: report.closing, strong: true, tone: "bg-[#eef6f1]" },
   ];
 
-  const download = () => {
-    const num = (v: number, digits = 2) => v ? String(Math.round(v * 10 ** digits) / 10 ** digits).replace(".", ",") : "";
-    const head1 = ["", ...(oneDay ? [] : [""]), ...report.products.flatMap((p) => [text(p["Название"]), "", ""]), "Сумма"];
-    const head2 = ["", ...(oneDay ? [] : ["Дата"]), ...report.products.flatMap(() => ["коробка", "кг", "цена"]), ""];
-    const body = rows.map((r) => [r.title, ...(oneDay ? [] : [r.day ? date(r.day) : ""]), ...report.products.flatMap((p) => { const c = r.cells.get(p.id); return [num(n(c?.boxes), 1), num(n(c?.kg)), r.withPrice ? num(price(c)) : ""]; }), r.total ? num(r.total) : ""]);
-    const content = [head1, head2, ...body].map((line) => line.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(";")).join("\r\n");
-    const url = URL.createObjectURL(new Blob(["﻿" + content], { type: "text/csv;charset=utf-8" }));
-    const a = document.createElement("a"); a.href = url; a.download = `склад ${oneDay ? from : `${from || "начало"} — ${to || "сегодня"}`}.csv`; a.click(); URL.revokeObjectURL(url);
+  // an .xlsx laid out like the client's warehouse sheet: product name over «коробка / кг», a narrow blue «Цена» column,
+  // the opening stock in red, a «Приход» line, a line per customer with its sum on the right, totals and closing stock
+  const [saving, setSaving] = useState(false);
+  const download = async () => {
+    setSaving(true);
+    try {
+      const { default: ExcelJS } = await import("exceljs");
+      const book = new ExcelJS.Workbook();
+      const sheet = book.addWorksheet(oneDay ? date(from) : "Склад", { views: [{ state: "frozen", xSplit: oneDay ? 1 : 2, ySplit: 2 }] });
+      const lead = oneDay ? 1 : 2, sumCol = lead + report.products.length * 3 + 1;
+      const thin = { style: "thin" as const, color: { argb: "FF9E9E9E" } };
+      const blue = { type: "pattern" as const, pattern: "solid" as const, fgColor: { argb: "FFDCE6F1" } };
+      const green = { type: "pattern" as const, pattern: "solid" as const, fgColor: { argb: "FFEAF4EC" } };
+      const at = (row: number, col: number) => sheet.getCell(row, col);
+      const value = (v: number) => Math.abs(v) > 0.005 ? Math.round(v * 100) / 100 : null;
+
+      at(1, 1).value = oneDay ? date(from) : `${date(from)} — ${date(to)}`;
+      at(1, 1).font = { bold: true, size: 11 }; at(1, 1).alignment = { horizontal: "center", vertical: "middle" };
+      at(1, 1).border = { top: { style: "medium", color: { argb: "FF8E7CC3" } }, left: { style: "medium", color: { argb: "FF8E7CC3" } }, bottom: { style: "medium", color: { argb: "FF8E7CC3" } }, right: { style: "medium", color: { argb: "FF8E7CC3" } } };
+      at(2, 1).value = "Остатки на начало"; at(2, 1).font = { bold: true };
+      if (!oneDay) { at(2, 2).value = "Дата"; at(2, 2).font = { bold: true }; }
+      report.products.forEach((p, i) => {
+        const col = lead + 1 + i * 3;
+        sheet.mergeCells(1, col, 1, col + 1);
+        at(1, col).value = text(p["Название"]);
+        at(1, col).font = { bold: true, italic: true, size: 13 }; at(1, col).alignment = { horizontal: "center", vertical: "middle" };
+        at(1, col + 2).value = "Цена"; at(1, col + 2).font = { size: 8 }; at(1, col + 2).alignment = { horizontal: "center" };
+        at(2, col).value = "коробка"; at(2, col + 1).value = "кг";
+        for (const c of [col, col + 1]) { at(2, c).font = { bold: true, size: 9 }; at(2, c).alignment = { horizontal: "center" }; }
+        sheet.getColumn(col).width = 9; sheet.getColumn(col + 1).width = 9; sheet.getColumn(col + 2).width = 7;
+      });
+      sheet.getColumn(1).width = 26; if (!oneDay) sheet.getColumn(2).width = 11; sheet.getColumn(sumCol).width = 16;
+      sheet.getRow(1).height = 24;
+
+      const lines: { title: string; day?: string; cells: Map<string, Cell>; total?: number; withPrice?: boolean; kind: "opening" | "receipt" | "line" | "total" | "closing" }[] = [
+        { title: "", cells: report.opening, kind: "opening" },
+        { title: "Приход", cells: report.receipts, kind: "receipt" },
+        ...report.lines.map((l) => ({ title: l.title, day: l.day, cells: l.cells, total: l.total, withPrice: true, kind: "line" as const })),
+        { title: "Итого отгрузка", cells: report.shipped, total: report.total, withPrice: true, kind: "total" },
+        { title: `Остаток на конец ${date(to || today())}`, cells: report.closing, kind: "closing" },
+      ];
+      lines.forEach((l, i) => {
+        const r = 3 + i;
+        at(r, 1).value = l.title;
+        if (!oneDay && l.day) at(r, 2).value = date(l.day);
+        report.products.forEach((p, j) => {
+          const col = lead + 1 + j * 3, c = l.cells.get(p.id);
+          at(r, col).value = value(n(c?.boxes)); at(r, col + 1).value = value(n(c?.kg));
+          if (l.withPrice && c?.kg) at(r, col + 2).value = value(c.sum / c.kg);
+          at(r, col).numFmt = "# ##0.##"; at(r, col + 1).numFmt = "# ##0.##"; at(r, col + 2).numFmt = "0.##";
+        });
+        if (l.total) { at(r, sumCol).value = value(l.total); at(r, sumCol).numFmt = "# ##0.00"; at(r, sumCol).font = { bold: true }; }
+        const row = sheet.getRow(r);
+        if (l.kind === "opening") row.eachCell({ includeEmpty: true }, (cell, col) => { if (col > lead && col < sumCol) cell.font = { bold: true, color: { argb: "FFFF0000" } }; });
+        if (l.kind === "receipt") at(r, 1).font = { bold: true };
+      });
+
+      // grid, blue price columns, centred numbers
+      const last = 2 + lines.length;
+      for (let r = 1; r <= last; r++) for (let col = 1; col <= sumCol; col++) {
+        const cell = at(r, col);
+        if (!(r === 1 && col === 1)) cell.border = { top: thin, left: thin, bottom: thin, right: thin };
+        if (col > lead && col < sumCol && (col - lead) % 3 === 0) cell.fill = blue;
+        if (r > 2 && col > lead && col < sumCol) cell.alignment = { horizontal: "center" };
+      }
+      // «Итого отгрузка» and the closing stock: bold on a light green band
+      for (const r of [last - 1, last]) for (let col = 1; col <= sumCol; col++) { at(r, col).font = { bold: true }; at(r, col).fill = green; }
+      for (let r = 3; r <= last; r++) at(r, 1).alignment = { indent: 1 };
+
+      const buffer = await book.xlsx.writeBuffer();
+      const url = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+      const a = document.createElement("a"); a.href = url; a.download = `Склад ${oneDay ? date(from) : `${date(from)} — ${date(to)}`}.xlsx`; a.click(); URL.revokeObjectURL(url);
+    } finally { setSaving(false); }
   };
 
   const cellCls = "border-b border-r border-[#eef2ef] px-2 py-1.5 text-right tabular-nums whitespace-nowrap";
@@ -80,7 +145,7 @@ export default function WarehouseReport({ data }: { data: Dataset }) {
     <div className="mb-3 flex flex-wrap items-center gap-2">
       <PeriodInputs title="Период" from={from} to={to} onFrom={setFrom} onTo={setTo} />
       <button type="button" className="rounded border border-[#dbe2df] bg-white px-2.5 py-1.5 text-xs text-[#4f6158] hover:bg-[#f3f7f5]" onClick={() => { setFrom(today()); setTo(today()); }}>Сегодня</button>
-      <button type="button" className="inline-flex items-center gap-1.5 rounded border border-[#bcd9ce] bg-white px-2.5 py-1.5 text-xs font-medium text-[#167561] hover:bg-[#eff8f3] disabled:opacity-50" disabled={!report.products.length} onClick={download}><Download size={14} /> Скачать для Excel</button>
+      <button type="button" className="inline-flex items-center gap-1.5 rounded border border-[#bcd9ce] bg-white px-2.5 py-1.5 text-xs font-medium text-[#167561] hover:bg-[#eff8f3] disabled:opacity-50" disabled={!report.products.length || saving} onClick={() => void download()}><Download size={14} /> {saving ? "Готовлю файл…" : "Скачать Excel"}</button>
     </div>
     {!report.products.length ? <div className={`${panel} p-8 text-center text-sm text-[#86958b]`}>Нет остатков и движений за выбранный период</div> :
     <div className={`${panel} max-h-[70vh] overflow-auto`}><table className="min-w-full border-separate border-spacing-0 text-xs">
