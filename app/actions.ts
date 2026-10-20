@@ -298,6 +298,9 @@ export async function saveRecord(key: TableKey, input: Record<string, unknown>, 
     if (input["В расчёт с контрагентом"] && !input["Контрагент"]) throw new Error("Выберите контрагента для расчёта");
     // counted once: through the batch advance (Партии → «Оплачено по кассе»), not also in the supplier's balance
     if (input["Партия"] && input["Категория"] === "Оплата поставщику") input = { ...input, "В расчёт с контрагентом": false };
+    // a supplier's balance is about goods: only «Оплата поставщику» counts; logistics, customs etc. are expenses
+    if (input["Контрагент"] && input["Категория"] !== "Оплата поставщику" && input["В расчёт с контрагентом"]
+      && (await readOne("contacts", String(input["Контрагент"]), ["Тип"]))["Тип"] === "Поставщик") input = { ...input, "В расчёт с контрагентом": false };
   }
   if (key === "batches" && !id && (!input["Номер партии"] || !input["Товар"])) throw new Error("Укажите номер партии и товар");
   const payload = writable(key, input);
