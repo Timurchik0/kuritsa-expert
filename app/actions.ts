@@ -300,8 +300,9 @@ export async function saveRecord(key: TableKey, input: Record<string, unknown>, 
     const holder = (await readOne("accounts", String(input["Счёт"]), ["Взаиморасчёт с контрагентомId"]))["Взаиморасчёт с контрагентомId"] ?? null;
     input = { ...input, "Держатель счёта": holder };
     if (holder && input["Контрагент"] === holder) input = { ...input, "В расчёт с контрагентом": false };
-    // counted once: through the batch advance (Партии → «Оплачено по кассе»), not also in the supplier's balance
-    if (input["Партия"] && input["Категория"] === "Оплата поставщику") input = { ...input, "В расчёт с контрагентом": false };
+    // counted once: while the batch is on its way — through the batch advance (Партии → «Оплачено по кассе»);
+    // once its receipt has taken the purchase out of the supplier's balance — directly (e.g. a later postpayment)
+    if (input["Партия"] && input["Категория"] === "Оплата поставщику") input = { ...input, "В расчёт с контрагентом": await receivedFromSupplier(String(input["Партия"])) && Boolean(input["Контрагент"]) };
     // a supplier's balance is about goods: only «Оплата поставщику» counts; logistics, customs etc. are expenses
     if (input["Контрагент"] && input["Категория"] !== "Оплата поставщику" && input["В расчёт с контрагентом"]
       && (await readOne("contacts", String(input["Контрагент"]), ["Тип"]))["Тип"] === "Поставщик") input = { ...input, "В расчёт с контрагентом": false };
@@ -435,11 +436,17 @@ export async function createMovement(input: Record<string, unknown>) {
   return result.id;
 }
 
+// The batch's receipt booked the purchase against its supplier (see receiveBatch)
+async function receivedFromSupplier(batchId: string) {
+  return (await readTable("movements")).some((m) => m["ПартияId"] === batchId && m["Тип"] === "Приход" && m["В расчёт с контрагентом"] && m["КонтрагентId"]);
+}
+
 export async function receiveBatch(id: string) {
   const batch = await readOne("batches", id, ["Статус", "Кг", "Цена продажи сом/кг", "Дата прибытия"]);
   if (num(batch["Цена продажи сом/кг"]) <= 0) throw new Error("У партии не указана плановая цена продажи");
   if (!["В пути", "На таможне"].includes(String(batch["Статус"]))) throw new Error("Приёмка доступна только для партии в пути или на таможне");
-  const productId = (await readOne("batches", id, ["ТоварId"]))["ТоварId"];
+  const links = await readOne("batches", id, ["ТоварId", "ПоставщикId", "Оплачено поставщику, сом"]);
+  const productId = links["ТоварId"], supplier = links["ПоставщикId"] ?? null, purchase = num(links["Оплачено поставщику, сом"]);
   const existing = (await readTable("movements")).filter((m) => m["ПартияId"] === id && m["Тип"] === "Приход");
   if (existing.length) throw new Error("Приход для этой партии уже зарегистрирован");
   if (!productId || num(batch["Кг"]) <= 0) throw new Error("У партии должны быть товар и положительный вес");
@@ -454,8 +461,15 @@ export async function receiveBatch(id: string) {
       // stock is valued at the planned sale price, like the «цена» column of the Excel warehouse sheets
       "Цена сом/кг": num(batch["Цена продажи сом/кг"]),
       "Цена плановая продажная, сом/кг": num(batch["Цена продажи сом/кг"]),
-      "В расчёт с контрагентом": false,
+      // the goods close the supplier's prepayment: the purchase sum leaves its balance (as an Excel supplier sheet does);
+      // money paid by cash for this batch stops counting as an advance and counts directly instead (below)
+      ...(supplier && purchase > 0 ? { "Контрагент": supplier, "Сумма вручную": purchase, "В расчёт с контрагентом": true } : { "В расчёт с контрагентом": false }),
     }));
+    if (supplier && purchase > 0) {
+      for (const p of (await readTable("payments")).filter((p) => p["ПартияId"] === id && p["Категория"] === "Оплата поставщику" && !p["В расчёт с контрагентом"] && p["КонтрагентId"])) {
+        await update("payments", p.id, writable("payments", { "В расчёт с контрагентом": true }));
+      }
+    }
     return movement.id;
   } catch (error) {
     try { await update("batches", id, writable("batches", { "Статус": batch["Статус"], "Дата прибытия": batch["Дата прибытия"] ? localDay(batch["Дата прибытия"]) : null })); }

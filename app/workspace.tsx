@@ -414,7 +414,7 @@ export default function Workspace({ initial, user }: { initial: DataResult; user
   const visiblePayments = data.payments.filter((r) => (!accountFilter || r["СчётId"] === accountFilter) && (!categoryFilter || r["Категория"] === categoryFilter) && (!directionFilter || r["Направление"] === directionFilter) && (!periodFrom || dateInput(r["Дата"]) >= periodFrom) && (!periodTo || dateInput(r["Дата"]) <= periodTo)).sort((a, b) => text(b["Дата"]).localeCompare(text(a["Дата"])));
   const ledger = useMemo(() => {
     if (!activeContact) return [];
-    const movements = data.movements.filter((r) => r["КонтрагентId"] === activeContact.id && r["В расчёт с контрагентом"]).map((r) => ({ ...r, source: "Отгрузка", impact: n(r["Влияние на долг"]) }));
+    const movements = data.movements.filter((r) => r["КонтрагентId"] === activeContact.id && r["В расчёт с контрагентом"]).map((r) => ({ ...r, source: text(r["Тип"]) || "Отгрузка", impact: n(r["Влияние на долг"]) }));
     const payments = data.payments.filter((r) => r["КонтрагентId"] === activeContact.id && r["В расчёт с контрагентом"]).map((r) => ({ ...r, source: "Платёж", impact: n(r["Влияние на долг"]) }));
     const viaAccounts = data.payments.filter((r) => r["Держатель счётаId"] === activeContact.id).map((r) => ({ ...r, source: `Касса · ${label(data.accounts, r["СчётId"])}`, impact: n(r["Влияние на долг держателя"]) }));
     let running = n(activeContact["Сальдо на начало"]);
