@@ -349,6 +349,26 @@
       "isLookup": null,
       "isComputed": true,
       "isMultipleCellValue": false
+    },
+    {
+      "id": "fldWa2ljnmXEIl91rSd",
+      "name": "Парный платёж",
+      "dbFieldName": "Parnyy_platyozh",
+      "type": "link",
+      "description": "Перевод между счетами: второй платёж пары (расход ↔ приход)",
+      "options": {
+        "relationship": "manyOne",
+        "foreignTableId": "tbl8AoZg8hkOqMBar6d",
+        "lookupFieldId": "fldEdCoWH6jjXVy98KO",
+        "isOneWay": true,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tbl8AoZg8hkOqMBar6d",
+        "selfKeyName": "__id",
+        "foreignKeyName": "__fk_fldWa2ljnmXEIl91rSd"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
     }
   ]
 }

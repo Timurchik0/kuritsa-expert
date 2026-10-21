@@ -242,6 +242,20 @@ function sameScope(parent: Record<string, unknown>, product: unknown, country: u
 
 export async function saveRecord(key: TableKey, input: Record<string, unknown>, id?: string) {
   if (!Object.hasOwn(schemas, key)) throw new Error("Неизвестная таблица");
+  // «Второй счёт» is not a field: the other account of a «Перевод между счетами» (its paired payment is kept in step below)
+  let secondAccount: string | null = null;
+  const transferForm = key === "payments" && Object.hasOwn(input, SECOND_ACCOUNT);
+  if (transferForm) {
+    const { [SECOND_ACCOUNT]: second, ...rest } = input;
+    secondAccount = input["Категория"] === TRANSFER && second ? String(second) : null;
+    input = rest;
+    if (secondAccount) {
+      await ensureLink("accounts", secondAccount);
+      if (secondAccount === input["Счёт"]) throw new Error("Перевод между счетами: выберите другой счёт");
+      // a transfer is between own accounts: no counterparty, no batch, nothing in settlements
+      input = { ...input, "Контрагент": null, "Партия": null, "В расчёт с контрагентом": false };
+    }
+  }
   if (!["batches", "payments", "taxes", "reconciliations", "settings", "quotas", "licenses", "requests", "products", "contacts", "accounts", "entities", "snapshots"].includes(key)) throw new Error("Используйте форму операции");
   await checkReference(key, input, id);
   if (["batches", "products", "quotas", "licenses", "requests", "payments", "taxes"].includes(key)) {
@@ -311,6 +325,7 @@ export async function saveRecord(key: TableKey, input: Record<string, unknown>, 
   const payload = writable(key, input);
   if (!Object.keys(payload).length) throw new Error("Нет данных для сохранения");
   const result = id ? await update(key, id, payload) : await create(key, payload);
+  if (transferForm) await syncTransfer(result.id, input, secondAccount, Boolean(id));
   if (key === "accounts" && id && Object.hasOwn(input, "Взаиморасчёт с контрагентом")) {
     const holder = input["Взаиморасчёт с контрагентом"] || null;
     for (const p of (await readTable("payments")).filter((p) => p["СчётId"] === id && (p["Держатель счётаId"] ?? null) !== holder)) {
@@ -320,6 +335,39 @@ export async function saveRecord(key: TableKey, input: Record<string, unknown>, 
   // a request linked to a batch also puts its license and quota on that batch
   if (key === "requests" && input["Партия"]) await update("batches", String(input["Партия"]), writable("batches", { "Лицензия": input["Лицензия"], ...(linkedQuota ? { "Квота": linkedQuota } : {}) }));
   return result.id;
+}
+
+const TRANSFER = "Перевод между счетами";
+const SECOND_ACCOUNT = "Второй счёт";
+const PAIR = "Парный платёж";
+
+/**
+ * «Перевод между счетами» is one operation: the payment on one account and the opposite one on the other account,
+ * linked both ways through «Парный платёж». Saving either side creates or updates the other; a payment that stops being
+ * a transfer (another category, no second account) loses its pair.
+ */
+async function syncTransfer(selfId: string, input: Record<string, unknown>, second: string | null, existed: boolean) {
+  if (!field("payments", PAIR)) return; // base without the pair link yet
+  const pairId = existed ? (await readOne("payments", selfId, [`${PAIR}Id`]))[`${PAIR}Id`] as string | null ?? null : null;
+  if (!second) {
+    if (pairId) {
+      await update("payments", selfId, writable("payments", { [PAIR]: null }));
+      await deleteRecordSafe("payments", pairId);
+    }
+    return;
+  }
+  const accounts = await readTable("accounts");
+  const name = (id: unknown) => String(accounts.find((a) => a.id === id)?.["Название"] ?? "");
+  const outgoing = input["Направление"] === "Расход";
+  const holder = accounts.find((a) => a.id === second)?.["Взаиморасчёт с контрагентомId"] ?? null;
+  const pair = {
+    "Дата": input["Дата"], "Счёт": second, "Направление": outgoing ? "Приход" : "Расход", "Сумма": input["Сумма"], "Валюта": input["Валюта"], "Курс": input["Курс"] ?? null,
+    "Категория": TRANSFER, "Контрагент": null, "Партия": null, "В расчёт с контрагентом": false, "Держатель счёта": holder,
+    "Описание": outgoing ? `Перевод со счёта «${name(input["Счёт"])}»` : `Перевод на счёт «${name(input["Счёт"])}»`, [PAIR]: selfId,
+  };
+  const pairSaved = pairId ? await update("payments", pairId, writable("payments", pair)) : await create("payments", writable("payments", pair));
+  const own = { [PAIR]: pairSaved.id, ...(!String(input["Описание"] ?? "").trim() || /^Перевод (на|со) сч/.test(String(input["Описание"])) ? { "Описание": outgoing ? `Перевод на счёт «${name(second)}»` : `Перевод со счёта «${name(second)}»` } : {}) };
+  await update("payments", selfId, writable("payments", own));
 }
 
 // Reference tables (товары, контрагенты, счета, юрлица): required fields and unique names
@@ -404,7 +452,10 @@ export async function deleteEntity(key: TableKey, id: string) {
     const field = key === "licenses" ? "ЛицензияId" : key === "quotas" ? "КвотаId" : null;
     if (field) for (const b of (await readTable("batches")).filter((b) => b[field] === id)) await update("batches", b.id, writable("batches", { [field.slice(0, -2)]: null }));
   }
+  // a transfer goes as a whole: its other half is removed too
+  const pair = key === "payments" && field("payments", PAIR) ? (await readOne("payments", id, [`${PAIR}Id`]))[`${PAIR}Id`] as string | null ?? null : null;
   await deleteRecordSafe(key, id);
+  if (pair) { try { await deleteRecordSafe("payments", pair); } catch { throw new Error("Платёж удалён, а парный платёж перевода — нет. Удалите его в кассе вручную."); } }
   return id;
 }
 

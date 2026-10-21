@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Dataset, Row, TableKey } from "./actions";
-import { SearchSelect, dateInput, paymentCategories, text, uiInput, type Choice } from "./ui-kit";
+import { SearchSelect, TRANSFER, dateInput, paymentCategories, text, uiInput, type Choice } from "./ui-kit";
 
 // One create / edit / delete form for every table that has no special workflow of its own.
 export type EditKind = "products" | "contacts" | "accounts" | "entities" | "movements" | "payments" | "taxes" | "quotas" | "licenses" | "requests" | "reconciliations" | "snapshots";
 type Kind = "text" | "number" | "signed" | "date" | "textarea" | "checkbox" | "select";
-type Spec = { name: string; kind: Kind; required?: boolean; options?: (data: Dataset, form?: Record<string, unknown>) => Choice[]; wide?: boolean; label?: string; readonly?: boolean };
+type Spec = { name: string; kind: Kind; required?: boolean; options?: (data: Dataset, form?: Record<string, unknown>) => Choice[]; wide?: boolean; label?: string | ((form: Record<string, unknown>) => string); readonly?: boolean;
+  /** shown only when this holds for the form (still sent on save) */ when?: (form: Record<string, unknown>) => boolean };
+const isTransfer = (form: Record<string, unknown>) => form["Категория"] === TRANSFER;
 
 const list = (...values: string[]) => () => values.map((v) => ({ value: v, title: v }));
 const rows = (key: TableKey, field = "Название") => (data: Dataset) => data[key].map((r) => ({ value: r.id, title: text(r[field]) || text(r["Номер партии"]) || "—" }));
@@ -40,7 +42,9 @@ export const EDITORS: Record<EditKind, { table: TableKey; singular: string; crea
     { name: "Дата", kind: "date", required: true }, { name: "Счёт", kind: "select", required: true, options: rows("accounts") }, { name: "Направление", kind: "select", required: true, options: list("Приход", "Расход") },
     { name: "Категория", kind: "select", options: list("Оплата от клиента", "Оплата поставщику", "Растаможка", "Налоги", "Логистика", "Выгрузка", "Комиссия банка", "Зарплата", "Аренда", "Займы", "Расчёты с партнёром", "Перевод между счетами", "Расходы вне себестоимости", "Личные расходы", "Яйца", "Прочий приход", "Прочие расходы", "Прочее") },
     { name: "Сумма", kind: "number", required: true }, { name: "Валюта", kind: "select", required: true, options: list("сом", "$", "₽") }, { name: "Курс", kind: "number" },
-    { name: "Контрагент", kind: "select", options: contactsGrouped }, { name: "Партия", kind: "select", options: rows("batches", "Партия") }, { name: "В расчёт с контрагентом", kind: "checkbox" }, { name: "Описание", kind: "textarea", wide: true }] },
+    // not a field: the other account of a transfer — its paired payment is created / kept in step on save
+    { name: "Второй счёт", kind: "select", options: (data, form) => data.accounts.filter((a) => a.id !== form?.["Счёт"]).map((a) => ({ value: a.id, title: text(a["Название"]) })), when: isTransfer, label: (form) => form["Направление"] === "Приход" ? "Со счёта (там будет такой же расход)" : "На счёт (там будет такой же приход)" },
+    { name: "Контрагент", kind: "select", options: contactsGrouped, when: (f) => !isTransfer(f) }, { name: "Партия", kind: "select", options: rows("batches", "Партия"), when: (f) => !isTransfer(f) }, { name: "В расчёт с контрагентом", kind: "checkbox", when: (f) => !isTransfer(f) }, { name: "Описание", kind: "textarea", wide: true }] },
   taxes: { table: "taxes", singular: "начисление налога", created: "Начисление сохранено", fields: [
     { name: "Основание", kind: "text", required: true, wide: true }, { name: "Дата", kind: "date", required: true }, { name: "Начислено, сом", kind: "number", required: true }, { name: "Оплачено, сом", kind: "number" }, comment] },
   quotas: { table: "quotas", singular: "квота", created: "Квота сохранена", fields: [
@@ -79,7 +83,12 @@ export function RecordEditor({ kind, row, defaults, data, busy, warning, onSave,
   const [openedFor, setOpenedFor] = useState<string | null>(null);
   const [confirm, setConfirm] = useState(false);
   const key = kind ? `${kind}:${row?.id ?? "new"}` : null;
-  if (key !== openedFor) { setOpenedFor(key); setConfirm(false); setForm(kind ? { ...formOf(kind, row), ...defaults } : {}); }
+  if (key !== openedFor) {
+    setOpenedFor(key); setConfirm(false);
+    // a transfer shows the account of its paired payment
+    const pair = kind === "payments" && row?.["Парный платёжId"] ? data.payments.find((p) => p.id === row["Парный платёжId"]) : undefined;
+    setForm(kind ? { ...formOf(kind, row), ...(pair ? { "Второй счёт": pair["СчётId"] ?? "" } : {}), ...defaults } : {});
+  }
   if (!kind) return null;
   const spec = EDITORS[kind];
   const set = (name: string, value: unknown) => setForm((f) => ({ ...f, [name]: value, ...(kind === "payments" && name === "Направление" && !paymentCategories(value).includes(String(f["Категория"] ?? "")) ? { "Категория": "" } : {}) }));
@@ -90,8 +99,8 @@ export function RecordEditor({ kind, row, defaults, data, busy, warning, onSave,
   return <Dialog open onOpenChange={(v) => { if (!v && !busy) onClose(); }}><DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-[640px]">
     <DialogHeader><DialogTitle>{row ? `Изменить: ${spec.singular}` : `Новый ${spec.singular}`.replace("Новый лицензия", "Новая лицензия").replace("Новый квота", "Новая квота").replace("Новый заявка", "Новая заявка").replace("Новый сверка", "Новая сверка")}</DialogTitle><DialogDescription>{row ? "Изменения попадут в журнал действий" : "Поля со звёздочкой обязательны"}</DialogDescription></DialogHeader>
     <form className="grid gap-3 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); submit(); }}>
-      {spec.fields.map((f) => <label key={f.name} className={`flex min-w-0 flex-col gap-1.5 text-xs font-medium text-[#65746e] ${f.wide || f.kind === "textarea" ? "sm:col-span-2" : ""}`}>
-        <span>{f.label ?? f.name}{f.required && <span className="text-red-600"> *</span>}</span>
+      {spec.fields.filter((f) => !f.when || f.when(form)).map((f) => <label key={f.name} className={`flex min-w-0 flex-col gap-1.5 text-xs font-medium text-[#65746e] ${f.wide || f.kind === "textarea" ? "sm:col-span-2" : ""}`}>
+        <span>{typeof f.label === "function" ? f.label(form) : f.label ?? f.name}{f.required && <span className="text-red-600"> *</span>}</span>
         {f.readonly ? <span className="flex h-9 items-center text-sm text-[#253b33]">{text(row?.[f.name]) || "—"}</span>
           : f.kind === "checkbox" ? <span className="flex h-9 items-center gap-2 text-sm text-[#253b33]"><Checkbox checked={Boolean(form[f.name])} onCheckedChange={(v) => set(f.name, v === true)} />Да</span>
           : f.kind === "select" ? <SearchSelect name={f.name} value={form[f.name]} onChange={(v) => set(f.name, v)} items={f.options!(data, form)} required={f.required} />

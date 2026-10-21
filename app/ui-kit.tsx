@@ -30,6 +30,9 @@ export function groupByNumber(rows: Row[]) {
 
 export const kinds = (count: number) => `${count} ${count % 10 === 1 && count % 100 !== 11 ? "вид" : [2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100) ? "вида" : "видов"} товара`;
 
+/** One operation of two linked payments (расход on one account, приход on the other) — see syncTransfer */
+export const TRANSFER = "Перевод между счетами";
+
 // payment categories by direction: income-only, expense-only, and the ones used both ways
 export const PAYMENT_CATEGORIES: Record<"Приход" | "Расход", string[]> = {
   "Приход": ["Оплата от клиента", "Займы", "Расчёты с партнёром", "Перевод между счетами", "Яйца", "Прочий приход", "Прочее"],
