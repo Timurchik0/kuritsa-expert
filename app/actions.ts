@@ -531,8 +531,8 @@ export async function receiveBatch(id: string) {
   }
 }
 
-/** What an upcoming batch payment can be paid as (batch costs outside the supplier's price) */
-const UPCOMING_CATEGORIES = ["Логистика", "Выгрузка", "Растаможка", "Комиссия банка", "Прочие расходы"];
+/** What an upcoming batch payment can be paid as: batch costs, or the rest of the supplier's price still owed */
+const UPCOMING_CATEGORIES = ["Логистика", "Выгрузка", "Растаможка", "Оплата поставщику", "Комиссия банка", "Прочие расходы"];
 
 export async function payTax(taxId: string, accountId: string, amount: number, paymentDate: string, category = "") {
   if (!taxId || !accountId || !Number.isFinite(amount) || amount <= 0) throw new Error("Укажите налог, счёт и положительную сумму");
