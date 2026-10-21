@@ -259,6 +259,23 @@
       "isLookup": null,
       "isComputed": null,
       "isMultipleCellValue": true
+    },
+    {
+      "id": "fldJfqI0mCJ5M1hIuY7",
+      "name": "Предстоящие оплаты, сом",
+      "dbFieldName": "Predstoyashchie_oplaty_som",
+      "type": "number",
+      "description": "Неоплаченные предстоящие оплаты по партиям на дату снимка",
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
     }
   ]
 }

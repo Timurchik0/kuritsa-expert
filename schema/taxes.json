@@ -113,6 +113,41 @@
       "isLookup": null,
       "isComputed": true,
       "isMultipleCellValue": false
+    },
+    {
+      "id": "fldBDfkJ8QvtThNh9BU",
+      "name": "Статья",
+      "dbFieldName": "Statya",
+      "type": "singleSelect",
+      "description": "Налоги или предстоящие оплаты по партиям (логистика, растаможка… за уже пришедший товар); пусто = налоги",
+      "options": [
+        "Налоги",
+        "Предстоящие оплаты по партиям"
+      ],
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldpg7zAigHpGnq52KH",
+      "name": "Партия",
+      "dbFieldName": "Partiya",
+      "type": "link",
+      "description": "К какой партии относится предстоящая оплата (необязательно)",
+      "options": {
+        "relationship": "manyOne",
+        "foreignTableId": "tblsv7z4tEvxYy3Zts1",
+        "lookupFieldId": "fld8ozm0K8RENhFBUVw",
+        "isOneWay": true,
+        "fkHostTableName": "bseNgKMy9d3MkxwlAjk.tblAjynPGN6BJwEamT5",
+        "selfKeyName": "__id",
+        "foreignKeyName": "__fk_fldpg7zAigHpGnq52KH"
+      },
+      "cellValueType": "string",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
     }
   ]
 }

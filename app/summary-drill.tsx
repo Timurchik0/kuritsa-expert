@@ -5,10 +5,10 @@ import { ChevronRight, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { Dataset, Row } from "./actions";
-import { amount, type calculateSummary } from "./finance";
+import { UPCOMING, amount, type calculateSummary } from "./finance";
 
 // Drill-down of a summary metric: the formula in words and every record that adds up to the number.
-export type DrillKey = "accounts" | "counterparts" | "inTransit" | "stock" | "turnover" | "loans" | "capital" | "taxes" | "real";
+export type DrillKey = "accounts" | "counterparts" | "inTransit" | "stock" | "turnover" | "loans" | "capital" | "taxes" | "upcoming" | "real";
 type Summary = ReturnType<typeof calculateSummary>;
 export type Line = { key: string; cells: string[]; value: number; muted?: boolean; open?: () => void };
 export type Group = { title: string; columns: string[]; lines: Line[]; total?: number; note?: string };
@@ -61,13 +61,15 @@ export function buildDrill(key: DrillKey, data: Dataset, s: Summary, open: { con
     case "stock": return { title: "Склад по плановой цене", value: som(s.stock), total: s.stock, formula: "Сумма по товарам: остаток, кг × плановая цена продажи (по каждому приходу и отгрузке).", groups: stock(), excel: "«Остаток по складу»: итого кг × цена реализации" };
     case "loans": return { title: "Займы (нетто)", value: som(s.loans), total: s.loans, formula: "Сумма балансов займодавцев и заёмщиков. «+» — нам должны (выданные займы, ИП Мырзабеков), «−» — мы должны (кредит банка, полученные займы).", groups: loans(), excel: "«Итого займов» с обратным знаком" };
     case "taxes": return { title: "Налоги к уплате", value: som(s.taxes), total: s.taxes, formula: "Сумма «начислено − оплачено» по всем начислениям налогов.", excel: "Расходы!E1",
-      groups: [group("Начисления", ["Основание", "Начислено", "Оплачено", "Остаток к уплате"], data.taxes.filter((t) => amount(t["Остаток к уплате, сом"])).map((t) => ({ key: t.id, value: amount(t["Остаток к уплате, сом"]), cells: [text(t["Основание"]), som(t["Начислено, сом"]), som(t["Оплачено, сом"]), som(t["Остаток к уплате, сом"])] })).sort(byValue))] };
+      groups: [group("Начисления", ["Основание", "Начислено", "Оплачено", "Остаток к уплате"], data.taxes.filter((t) => t["Статья"] !== UPCOMING && amount(t["Остаток к уплате, сом"])).map((t) => ({ key: t.id, value: amount(t["Остаток к уплате, сом"]), cells: [text(t["Основание"]), som(t["Начислено, сом"]), som(t["Оплачено, сом"]), som(t["Остаток к уплате, сом"])] })).sort(byValue))] };
+    case "upcoming": return { title: "Предстоящие оплаты по партиям", value: som(s.upcoming), total: s.upcoming, formula: "Сумма «начислено − оплачено» по предстоящим оплатам (логистика, растаможка и др. за товар, который уже пришёл, но ещё не оплачен). Касса → Плановые расходы.", excel: "—",
+      groups: [group("Предстоящие оплаты", ["Основание", "Партия", "Начислено", "Оплачено", "Остаток к оплате"], data.taxes.filter((t) => t["Статья"] === UPCOMING && amount(t["Остаток к уплате, сом"])).map((t) => ({ key: t.id, value: amount(t["Остаток к уплате, сом"]), cells: [text(t["Основание"]), text(data.batches.find((b) => b.id === t["ПартияId"])?.["Партия"]) || "—", som(t["Начислено, сом"]), som(t["Оплачено, сом"]), som(t["Остаток к уплате, сом"])] })).sort(byValue))] };
     case "turnover": return { title: "Итого денег в обороте", value: som(s.turnover), total: s.turnover, formula: "Деньги на счетах + остаток у контрагентов + отправлено поставщикам + склад по плановой цене. Каждую составляющую можно открыть на сводке.", excel: "F16 / сумма строки «остаток у контрагентов, на Р/С, отправлено, склад»",
       groups: [parts([["Деньги на счетах", s.accounts], ["Остаток у контрагентов", s.counterparts], ["Отправлено поставщикам", s.inTransit], ["Склад по плановой цене", s.stock]])] };
     case "capital": return { title: "Разница / прибыль (капитал)", value: som(s.capital), total: s.capital, formula: "Итого денег в обороте + займы (нетто).", excel: "I16 = F16 − займы",
       groups: [parts([["Итого денег в обороте", s.turnover], ["Займы (нетто)", s.loans]])] };
-    case "real": return { title: "Реальный остаток после налогов, $", value: usd(s.realUsd), total: s.capital - s.taxes, formula: `(Капитал − налоги к уплате) ÷ курс $ для отчётов (${s.rate == null ? "не указан" : fmt(s.rate, 2)}). Итог ниже — в сомах, до перевода в доллары.`, excel: "K16",
-      groups: [parts([["Капитал", s.capital], ["Налоги к уплате", -s.taxes]])] };
+    case "real": return { title: "Реальный остаток после налогов, $", value: usd(s.realUsd), total: s.capital - s.taxes - s.upcoming, formula: `(Капитал − налоги к уплате − предстоящие оплаты по партиям) ÷ курс $ для отчётов (${s.rate == null ? "не указан" : fmt(s.rate, 2)}). Итог ниже — в сомах, до перевода в доллары.`, excel: "K16",
+      groups: [parts([["Капитал", s.capital], ["Налоги к уплате", -s.taxes], ...(s.upcoming ? [["Предстоящие оплаты по партиям", -s.upcoming] as [string, number]] : [])])] };
   }
 }
 

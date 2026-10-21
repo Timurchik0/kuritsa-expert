@@ -13,15 +13,15 @@ const shownDate = (value: unknown) => value ? new Intl.DateTimeFormat("ru-RU", {
 const th = "whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-[#839188]";
 const td = "whitespace-nowrap px-3 py-3 text-sm";
 type Attachment = { name?: string; presignedUrl?: string };
-type Line = { id: string; date: unknown; title: string; source: string; turnover: number; loans: number; capital: number; taxes: number; capitalUsd: unknown; realUsd: unknown; files: Attachment[]; live?: boolean };
+type Line = { id: string; date: unknown; title: string; source: string; turnover: number; loans: number; capital: number; taxes: number; upcoming: number; capitalUsd: unknown; realUsd: unknown; files: Attachment[]; live?: boolean };
 
 export default function SnapshotsView({ rows, summary: s, asOf = "", busy, onSnapshot, onEdit }: { rows: Row[]; summary: ReturnType<typeof calculateSummary>; asOf?: string; busy: boolean; onSnapshot: () => void; onEdit: (row: Row) => void }) {
   const saved: Line[] = [...rows].sort((a, b) => String(b["Дата"] ?? "").localeCompare(String(a["Дата"] ?? ""))).map((row) => ({
     id: row.id, date: row["Дата"], title: String(row["Снимок"] ?? ""), source: String(row["Источник"] ?? ""),
-    turnover: amount(row["Деньги в обороте, сом"]), loans: amount(row["Займы (нетто), сом"]), capital: amount(row["Капитал, сом"]), taxes: amount(row["Налоги к уплате, сом"]),
+    turnover: amount(row["Деньги в обороте, сом"]), loans: amount(row["Займы (нетто), сом"]), capital: amount(row["Капитал, сом"]), taxes: amount(row["Налоги к уплате, сом"]), upcoming: amount(row["Предстоящие оплаты, сом"]),
     capitalUsd: row["Капитал, $"], realUsd: row["Реальный остаток, $"], files: Array.isArray(row["Исходный файл"]) ? row["Исходный файл"] as Attachment[] : [],
   }));
-  const lines: Line[] = [{ id: "live", date: asOf ? `${asOf}T12:00:00+06:00` : new Date().toISOString(), title: "Сейчас", source: "Приложение", turnover: s.turnover, loans: s.loans, capital: s.capital, taxes: s.taxes, capitalUsd: s.capitalUsd, realUsd: s.realUsd, files: [], live: true }, ...saved].sort((x, y) => ((new Date(String(y.date)).getTime() || 0) - (new Date(String(x.date)).getTime() || 0)) || (x.live ? -1 : 1));
+  const lines: Line[] = [{ id: "live", date: asOf ? `${asOf}T12:00:00+06:00` : new Date().toISOString(), title: "Сейчас", source: "Приложение", turnover: s.turnover, loans: s.loans, capital: s.capital, taxes: s.taxes, upcoming: s.upcoming, capitalUsd: s.capitalUsd, realUsd: s.realUsd, files: [], live: true }, ...saved].sort((x, y) => ((new Date(String(y.date)).getTime() || 0) - (new Date(String(x.date)).getTime() || 0)) || (x.live ? -1 : 1));
   return <section className="mt-8">
     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
       <div><h2 className="flex items-center gap-2 text-base font-semibold">История баланса<CalcInfo label="История баланса" formula="Снимок фиксирует значения сводки на дату: деньги в обороте, займы, капитал, налоги и реальный остаток. Изменение — разница капитала со следующим более ранним снимком." substitution={`${saved.length} сохранённых снимков + текущие данные`} source="Снимки баланса" excel="лист «баланс денег»: F16, B16, I16, J16, K16" /></h2><div className="mt-0.5 max-w-[640px] text-xs text-[#8b998f]">Кнопка сохраняет сегодняшние цифры сводки в эту таблицу, чтобы потом видеть, как менялся капитал. Ничего не скачивает и данные не меняет; повторное нажатие в тот же день обновляет снимок.</div></div>
@@ -38,7 +38,7 @@ export default function SnapshotsView({ rows, summary: s, asOf = "", busy, onSna
           <td className={`${td} text-right tabular-nums`}>{som(line.loans)}</td>
           <td className={`${td} text-right font-semibold tabular-nums`}>{som(line.capital)}</td>
           <td className={`${td} text-right tabular-nums`}>{usd(line.capitalUsd)}</td>
-          <td className={`${td} text-right tabular-nums`}>{som(line.taxes)}</td>
+          <td className={`${td} text-right tabular-nums`}>{som(line.taxes)}{line.upcoming ? <div className="text-[11px] text-[#8b998f]">+ предстоящие оплаты {som(line.upcoming)}</div> : null}</td>
           <td className={`${td} text-right tabular-nums`}>{usd(line.realUsd)}</td>
           <td className={`${td} whitespace-nowrap text-right tabular-nums ${delta == null ? "" : delta < 0 ? "text-[#b45c50]" : "text-[#227964]"}`}>{delta == null ? "—" : <span className="inline-flex items-center gap-1">{delta > 0 ? "+" : ""}{som(delta)}<CalcInfo label="Изменение капитала" formula="Капитал этой строки − капитал предыдущего (более раннего) снимка" substitution={`${som(line.capital)} − ${som(previous!.capital)} = ${som(delta)}`} source="Снимки баланса: Капитал, сом" excel="I16 на разные даты" /></span>}</td>
           <td className={td}>{line.files.length ? <a href={`/api/snapshot-file/${line.id}`} className="inline-flex items-center gap-1 text-xs text-[#147d6e] underline" title={line.files[0].name}><FileSpreadsheet size={14} />Скачать Excel</a> : <span className="text-xs text-[#9aa79f]">—</span>}</td>

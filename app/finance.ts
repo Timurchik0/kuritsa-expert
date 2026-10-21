@@ -8,6 +8,8 @@ export const RUSSIA_VAT = "НДС на импорт РФ, %";
 export const RUSSIA_SALES_TAX = "НсП РФ, %";
 export const RUSSIA_MARGIN = "Плановая маржа для НсП РФ, сом/кг";
 export const RUSSIA_MARGIN_DEFAULT = 15;
+/** «Статья» of a planned expense (table Налоги) that is not a tax: logistics, customs… still to pay for goods already received */
+export const UPCOMING = "Предстоящие оплаты по партиям";
 
 export function setting(data: Dataset, parameter: string): number | null {
   const row = data.settings.find((item) => item["Параметр"] === parameter);
@@ -36,7 +38,9 @@ export function calculateSummary(data: Dataset) {
   const lenders = sumContacts("Займодавец");
   const loans = lenders + borrowers;
   const capital = turnover + loans;
-  const taxes = data.taxes.reduce((sum, row) => sum + amount(row["Остаток к уплате, сом"]), 0);
+  // planned expenses still to pay: taxes, and the batches' upcoming payments (logistics etc. for goods already on stock)
+  const taxes = data.taxes.filter((row) => row["Статья"] !== UPCOMING).reduce((sum, row) => sum + amount(row["Остаток к уплате, сом"]), 0);
+  const upcoming = data.taxes.filter((row) => row["Статья"] === UPCOMING).reduce((sum, row) => sum + amount(row["Остаток к уплате, сом"]), 0);
   const rate = setting(data, REPORT_RATE);
   const sold = data.batches.filter((row) => row["Статус"] === "Продана");
   const soldProfitSom = sold.reduce((sum, row) => sum + amount(row["Прибыль, сом"]), 0);
@@ -44,10 +48,10 @@ export function calculateSummary(data: Dataset) {
   const soldRevenue = sold.reduce((sum, row) => sum + amount(row["Выручка, сом"]), 0);
   return {
     accounts, clientsOwe, clientAdvances, partners, borrowers, others, counterparts,
-    inTransit, suppliers, unlinkedTransit, lenders, stock, turnover, loans, capital, taxes, rate,
+    inTransit, suppliers, unlinkedTransit, lenders, stock, turnover, loans, capital, taxes, upcoming, rate,
     turnoverUsd: rate && rate > 0 ? turnover / rate : null,
     capitalUsd: rate && rate > 0 ? capital / rate : null,
-    realUsd: rate && rate > 0 ? (capital - taxes) / rate : null,
+    realUsd: rate && rate > 0 ? (capital - taxes - upcoming) / rate : null,
     soldProfitSom, soldProfitUsd,
     soldMargin: soldRevenue > 0 ? soldProfitSom / soldRevenue * 100 : 0,
     soldCount: sold.length,

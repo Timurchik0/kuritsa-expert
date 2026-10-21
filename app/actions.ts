@@ -18,7 +18,7 @@ import requests from "@/schema/requests.json";
 import snapshots from "@/schema/snapshots.json";
 import audit from "@/schema/audit.json";
 import { currentUser } from "@/lib/session";
-import { calculateSummary, datasetAsOf, localDay } from "./finance";
+import { UPCOMING, calculateSummary, datasetAsOf, localDay } from "./finance";
 
 const schemas = { products, accounts, contacts, batches, movements, payments, taxes, reconciliations, settings, entities, quotas, licenses, requests, snapshots } as const;
 export type TableKey = keyof typeof schemas;
@@ -293,8 +293,10 @@ export async function saveRecord(key: TableKey, input: Record<string, unknown>, 
     if (existing["Параметр"] === "Курс $ для отчётов" && num(input["Значение"]) <= 0) throw new Error("Курс должен быть больше нуля");
   }
   if (key === "taxes") {
-    if (!input["Основание"] || !input["Дата"] || input["Начислено, сом"] === undefined || !Number.isFinite(Number(input["Начислено, сом"])) || num(input["Начислено, сом"]) < 0 || Object.keys(input).some((name) => !["Основание", "Дата", "Начислено, сом", "Оплачено, сом", "Комментарий"].includes(name))) throw new Error("Укажите основание, дату и начисление налога");
+    if (!input["Основание"] || !input["Дата"] || input["Начислено, сом"] === undefined || !Number.isFinite(Number(input["Начислено, сом"])) || num(input["Начислено, сом"]) < 0 || Object.keys(input).some((name) => !["Основание", "Дата", "Начислено, сом", "Оплачено, сом", "Комментарий", "Статья", "Партия"].includes(name))) throw new Error("Укажите основание, дату и начисление налога");
     if (!id && num(input["Оплачено, сом"]) > 0) throw new Error("Оплата налога записывается кнопкой «Оплатить»");
+    // an empty article is a tax; only an upcoming batch payment keeps a batch
+    if (Object.hasOwn(input, "Статья")) input = { ...input, "Статья": input["Статья"] === UPCOMING ? UPCOMING : "Налоги", ...(input["Статья"] !== UPCOMING ? { "Партия": null } : {}) };
     if (num(input["Оплачено, сом"]) < 0 || num(input["Оплачено, сом"]) > num(input["Начислено, сом"]) + 0.005) throw new Error("Оплачено не может быть больше начисленного");
   }
   if (key === "reconciliations" && (!input["Партии в своде"] || !input["Дата свода"] || !Number.isFinite(Number(input["Факт остаток, $"])))) throw new Error("Укажите партии, дату и факт остаток сверки");
@@ -529,15 +531,22 @@ export async function receiveBatch(id: string) {
   }
 }
 
-export async function payTax(taxId: string, accountId: string, amount: number, paymentDate: string) {
+/** What an upcoming batch payment can be paid as (batch costs outside the supplier's price) */
+const UPCOMING_CATEGORIES = ["Логистика", "Выгрузка", "Растаможка", "Комиссия банка", "Прочие расходы"];
+
+export async function payTax(taxId: string, accountId: string, amount: number, paymentDate: string, category = "") {
   if (!taxId || !accountId || !Number.isFinite(amount) || amount <= 0) throw new Error("Укажите налог, счёт и положительную сумму");
   await ensureLink("accounts", accountId);
-  const tax = await readOne("taxes", taxId, ["Основание", "Оплачено, сом", "Остаток к уплате, сом"]);
+  const tax = await readOne("taxes", taxId, ["Основание", "Оплачено, сом", "Остаток к уплате, сом", "Статья", "ПартияId"]);
+  // an upcoming batch payment is paid as the expense it is (logistics, customs…) and stays linked to its batch
+  const upcoming = tax["Статья"] === UPCOMING;
+  if (upcoming && category && !UPCOMING_CATEGORIES.includes(category)) throw new Error("Выберите статью расхода по партии");
   if (num(tax["Остаток к уплате, сом"]) <= 0 || amount > num(tax["Остаток к уплате, сом"]) + 0.005) throw new Error("Сумма превышает остаток налога к уплате");
   const holder = (await readOne("accounts", accountId, ["Взаиморасчёт с контрагентомId"]))["Взаиморасчёт с контрагентомId"] ?? null;
   const payment = await create("payments", writable("payments", {
     "Дата": paymentDate, "Счёт": accountId, "Направление": "Расход", "Сумма": amount, "Держатель счёта": holder,
-    "Валюта": "сом", "Категория": "Налоги", "Описание": `Налог: ${String(tax["Основание"] ?? "")}`,
+    "Валюта": "сом", "Категория": upcoming ? category || "Логистика" : "Налоги", "Описание": `${upcoming ? "Предстоящая оплата" : "Налог"}: ${String(tax["Основание"] ?? "")}`,
+    ...(upcoming && tax["ПартияId"] ? { "Партия": tax["ПартияId"] } : {}),
     "В расчёт с контрагентом": false,
   }));
   try {
@@ -567,6 +576,7 @@ export async function saveSnapshot(comment = "", date = "") {
     "Деньги на счетах, сом": cents(s.accounts), "Остаток у контрагентов, сом": cents(s.counterparts),
     "Отправлено поставщикам, сом": cents(s.inTransit), "Склад, сом": cents(s.stock), "Деньги в обороте, сом": cents(s.turnover),
     "Займы (нетто), сом": cents(s.loans), "Капитал, сом": cents(s.capital), "Налоги к уплате, сом": cents(s.taxes),
+    ...(field("snapshots", "Предстоящие оплаты, сом") ? { "Предстоящие оплаты, сом": cents(s.upcoming) } : {}),
     "Курс $": s.rate, "Капитал, $": cents(s.capitalUsd), "Реальный остаток, $": cents(s.realUsd),
   };
   if (comment.trim()) values["Комментарий"] = comment.trim();
