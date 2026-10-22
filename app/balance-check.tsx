@@ -11,8 +11,8 @@ const fmt = (value: unknown, digits = 0) => new Intl.NumberFormat("ru-RU", { max
 const som = (value: unknown) => `${fmt(value)} сом`;
 const usd = (value: unknown) => `${fmt(value, 2)} $`;
 const shown = (day: string) => day ? day.split("-").reverse().join(".") : "—";
-// expenses that are not «расходы вне себестоимости»: the goods and their costs, loans, partners, own transfers, taxes (accrued separately)
-const NOT_EXPENSES = ["Оплата поставщику", "Логистика", "Выгрузка", "Растаможка", "Налоги", "Займы", "Расчёты с партнёром", "Перевод между счетами"];
+// expenses that are not «расходы вне себестоимости»: the goods and their costs (incl. the bank commission of a China batch), loans, partners, own transfers, taxes (accrued separately)
+const NOT_EXPENSES = ["Оплата поставщику", "Логистика", "Выгрузка", "Растаможка", "Комиссия банка", "Налоги", "Займы", "Расчёты с партнёром", "Перевод между счетами"];
 
 /**
  * The client's cross-check of the real balance: the balance fixed on a date + profit of the batches that arrived after it
