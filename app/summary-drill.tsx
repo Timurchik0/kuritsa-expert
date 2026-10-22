@@ -61,12 +61,12 @@ export function buildDrill(key: DrillKey, data: Dataset, s: Summary, open: { con
     const line = (b: Row): Line => {
       const plan = amount(b["Прибыль, сом"]), sold = b["Статус"] === "Продана", dev = sold ? deviation(b.id) : 0;
       return { key: b.id, value: fact ? plan + dev : plan, open: () => open.batch(b),
-        cells: fact ? [text(b["Партия"]), text(b["Статус"]), som(plan), sold ? `${dev > 0 ? "+" : ""}${som(dev)}` : "— (план)", som(plan + dev)] : [text(b["Партия"]), text(b["Статус"]), som(b["Выручка, сом"]), som(b["Себестоимость итого, сом"]), som(plan)] };
+        cells: fact ? [text(b["Партия"]), text(b["Статус"]), som(plan), sold ? (Math.abs(dev) < 0.005 ? "по плану" : `${dev > 0 ? "+" : ""}${som(dev)}`) : "ещё не продана", som(plan + dev)] : [text(b["Партия"]), text(b["Статус"]), som(b["Выручка, сом"]), som(b["Себестоимость итого, сом"]), som(plan)] };
     };
-    const groups = [group("Пришедшие партии", fact ? ["Партия", "Статус", "Прибыль по плану", "Отклонение по отгрузкам", "Итого"] : ["Партия", "Статус", "Выручка (план)", "Себестоимость", "Прибыль (план)"], arrived.map(line))];
+    const groups = [group("Пришедшие партии", fact ? ["Партия", "Статус", "Прибыль по плану", "Продали дороже (+) / дешевле (−) плана", "Итого"] : ["Партия", "Статус", "Выручка (план)", "Себестоимость", "Прибыль (план)"], arrived.map(line))];
     // shipments without a batch: their deviation is real but belongs to no batch — shown apart, not in the total
     const loose = shipments.filter((m) => m["Тип"] === "Отгрузка" && !m["ПартияId"] && Math.abs(amount(m["Отклонение от плана, сом"])) >= 0.005);
-    if (fact && loose.length) groups.push({ ...group("Отгрузки без партии (не входят в прибыль партий)", ["Отгрузка", "Отклонение от плана"], loose.map((m) => ({ key: m.id, value: amount(m["Отклонение от плана, сом"]), muted: true, cells: [text(m["Операция"]), som(m["Отклонение от плана, сом"])] }))), note: "Указывайте партию в отгрузке — тогда отклонение цены попадёт в прибыль этой партии." });
+    if (fact && loose.length) groups.push({ ...group("Отгрузки без партии (не входят в прибыль партий)", ["Отгрузка", "Продали дороже (+) / дешевле (−) плана"], loose.map((m) => ({ key: m.id, value: amount(m["Отклонение от плана, сом"]), muted: true, cells: [text(m["Операция"]), som(m["Отклонение от плана, сом"])] }))), note: "Указывайте партию в отгрузке — тогда отклонение цены попадёт в прибыль этой партии." });
     return groups;
   };
   const parts = (lines: [string, number][]): Group => group("Составляющие", ["Показатель", "Сумма"], lines.map(([title, value]) => ({ key: title, value, cells: [title, som(value, 2)] })));
@@ -86,7 +86,7 @@ export function buildDrill(key: DrillKey, data: Dataset, s: Summary, open: { con
     case "capital": return { title: "Разница / прибыль (капитал)", value: som(s.capital), total: s.capital, formula: "Итого денег в обороте + займы (нетто).", excel: "I16 = F16 − займы",
       groups: [parts([["Итого денег в обороте", s.turnover], ["Займы (нетто)", s.loans]])] };
     case "profitPlan": return { title: "Плановая прибыль по пришедшим партиям", value: som(s.plannedProfitSom), total: s.plannedProfitSom, formula: "Сумма прибыли по плановой цене продажи (выручка по плану − себестоимость) партий «На складе» и «Продана». Нажмите на партию, чтобы открыть её.", excel: "«расчет прибыли» AG", groups: profit(false) };
-    case "profitFact": return { title: "Прибыль: проданные — факт, остальные — план", value: som(s.factProfitSom), total: s.factProfitSom, formula: "Для проданных партий — плановая прибыль + отклонение фактической цены продажи от плановой по отгрузкам этой партии; для остальных — плановая прибыль. Нажмите на партию, чтобы открыть её.", excel: "—", groups: profit(true) };
+    case "profitFact": return { title: "Прибыль: проданные — факт, остальные — план", value: som(s.factProfitSom), total: s.factProfitSom, formula: "Для проданных партий — плановая прибыль плюс то, насколько их фактически продали дороже или дешевле плановой цены (по отгрузкам этой партии); «по плану» — продали ровно по плановой цене. Для непроданных — плановая прибыль. Нажмите на партию, чтобы открыть её.", excel: "—", groups: profit(true) };
     case "real": return { title: "Реальный остаток после налогов, $", value: usd(s.realUsd), total: s.capital - s.taxes - s.upcoming, formula: `(Капитал − налоги к уплате − предстоящие оплаты по партиям) ÷ курс $ для отчётов (${s.rate == null ? "не указан" : fmt(s.rate, 2)}). Итог ниже — в сомах, до перевода в доллары.`, excel: "K16",
       groups: [parts([["Капитал", s.capital], ["Налоги к уплате", -s.taxes], ...(s.upcoming ? [["Предстоящие оплаты по партиям", -s.upcoming] as [string, number]] : [])])] };
   }
