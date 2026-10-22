@@ -5,7 +5,7 @@ import { ChevronRight, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { Dataset, Row } from "./actions";
-import { UPCOMING, amount, type calculateSummary } from "./finance";
+import { UPCOMING, amount, plannedTransfersSom, type calculateSummary } from "./finance";
 
 // Drill-down of a summary metric: the formula in words and every record that adds up to the number.
 export type DrillKey = "accounts" | "counterparts" | "inTransit" | "stock" | "turnover" | "loans" | "capital" | "taxes" | "upcoming" | "real";
@@ -43,7 +43,7 @@ export function buildDrill(key: DrillKey, data: Dataset, s: Summary, open: { con
     const unlinked = data.batches.filter((b) => transit.includes(text(b["Статус"])) && !b["ПоставщикId"] && amount(b["Аванс поставщику (в пути), сом"]));
     return [
       group("Поставщики: предоплата на начало + авансы их партий в пути", contactColumns, data.contacts.filter((c) => c["Тип"] === "Поставщик").map(contactLine).sort(byValue)),
-      group("Партии в пути без поставщика", ["Партия", "Статус", "Оплачено поставщику", "Аванс в пути"], unlinked.map((b) => ({ key: b.id, value: amount(b["Аванс поставщику (в пути), сом"]), open: () => open.batch(b), cells: [text(b["Партия"]), text(b["Статус"]), som(b["Оплачено поставщику, сом"]), som(b["Аванс поставщику (в пути), сом"])] }))),
+      group("Партии в пути без поставщика", ["Партия", "Статус", "Оплачено поставщику", "Аванс в пути"], unlinked.map((b) => ({ key: b.id, value: amount(b["Аванс поставщику (в пути), сом"]), open: () => open.batch(b), cells: [text(b["Партия"]), text(b["Статус"]), som(plannedTransfersSom(b)), som(b["Аванс поставщику (в пути), сом"])] }))),
     ];
   };
   const stock = (): Group[] => [group("Остатки товаров", ["Товар", "Остаток, кг", "Средняя плановая цена", "Стоимость"],

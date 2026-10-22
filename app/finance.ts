@@ -73,6 +73,11 @@ export const supplierDebtUsd = (row: Record<string, unknown>) => isChina(row) ? 
 /** Delivery of a China batch in сом */
 export const deliverySom = (row: Record<string, unknown>) => isChina(row) ? amount(row["Доставка, $"]) * (amount(row["Курс доставки"]) || lastRate(row)) : 0;
 
+/** What the plan sends to the supplier, сом: China — prepayment and postpayment entered, at their rates (not the debt still due); РФ — the full price */
+export const plannedTransfersSom = (row: Record<string, unknown>) => isChina(row)
+  ? amount(row["Предоплата $"]) * amount(row["Курс предоплаты"]) + amount(row["Постоплата $"]) * amount(row["Курс постоплаты"])
+  : amount(row["Цена ₽/кг"]) * amount(row["Курс ₽→сом"]) * amount(row["Кг"]);
+
 /** Purchase from the supplier in сом: China — paid parts at their rates + the debt at the latest rate; РФ — ₽ price × rate × kg */
 export function supplierPaidSom(row: Record<string, unknown>) {
   return amount(row["Предоплата $"]) * amount(row["Курс предоплаты"]) + amount(row["Постоплата $"]) * amount(row["Курс постоплаты"]) + supplierDebtUsd(row) * lastRate(row) + amount(row["Цена ₽/кг"]) * amount(row["Курс ₽→сом"]) * amount(row["Кг"]);
@@ -83,7 +88,10 @@ export function batchEstimates(form: Record<string, unknown>, data: Dataset) {
   const internalTax = setting(data, INTERNAL_TAX);
   const russiaVat = setting(data, RUSSIA_VAT);
   const russiaSalesTax = setting(data, RUSSIA_SALES_TAX);
-  const commission = commissionRate == null ? null : amount(form["Постоплата $"]) * commissionRate / 100 * amount(form["Курс постоплаты"]);
+  // 0,75% of what goes to China after the prepayment: the postpayment entered plus the debt not paid yet (at the latest rate),
+  // so a batch created ahead of its postpayment does not show a cost without the commission
+  const commission = commissionRate == null ? null : form["Страна"] === "РФ" ? 0
+    : (amount(form["Постоплата $"]) * amount(form["Курс постоплаты"]) + Math.max(0, supplierDebtUsd(form)) * lastRate(form)) * commissionRate / 100;
   const kg = amount(form["Кг"]);
   const sale = amount(form["Цена продажи сом/кг"]);
   const rub = amount(form["Цена ₽/кг"]) * amount(form["Курс ₽→сом"]);

@@ -18,7 +18,7 @@ import SummaryView from "./summary-view";
 import SnapshotsView from "./snapshots-view";
 import BalanceCheck from "./balance-check";
 import { ReconciliationsView, SettingsView, TaxesView } from "./finance-views";
-import { UPCOMING, BANK_FEE, INTERNAL_TAX, REPORT_RATE, RUSSIA_MARGIN, RUSSIA_MARGIN_DEFAULT, RUSSIA_SALES_TAX, RUSSIA_VAT, batchEstimates, datasetAsOf, calculateSummary, kgPerBox, prepaidShares, setting, supplierPaidSom } from "./finance";
+import { UPCOMING, BANK_FEE, INTERNAL_TAX, REPORT_RATE, RUSSIA_MARGIN, RUSSIA_MARGIN_DEFAULT, RUSSIA_SALES_TAX, RUSSIA_VAT, batchEstimates, datasetAsOf, calculateSummary, kgPerBox, lastRate, prepaidShares, setting, supplierDebtUsd, supplierPaidSom } from "./finance";
 import type { DataResult, Dataset, Row, TableKey, TablesResult } from "./actions";
 import { createMovement, deleteEntity as removeEntity, isStaleVersion, loadAffected, loadTables, payTax, receiveBatch, saveBatch, saveRecord, saveSnapshot, updateMovement } from "./client-api";
 import WarehouseView from "./warehouse-view";
@@ -85,7 +85,7 @@ function withContactChange(contact: Row, impact: number, dateField: "После�
 const temp = (values: Entry): Row => ({ id: `temp-${crypto.randomUUID()}`, ...values });
 const batchLabel = (name: string, form: Entry) => name === "Выгрузка / логистика" && form["Страна"] === "РФ" ? "Логистика итого, сом · авто" : name === "Выгрузка / логистика" ? "Выгрузка / логистика сверх плана, сом" : ["Комиссия за перевод", "НДС и НсП"].includes(name) ? `${name} · авто` : name === "Цена ₽/кг" ? "Цена закупки, ₽/кг" : name === "Курс ₽→сом" ? "Курс ₽ → сом" : name === "Цена продажи сом/кг" ? "Цена продажи плановая, сом/кг" : name;
 function batchNote(name: string, form: Entry) {
-  if (name === "Комиссия за перевод") return "постоплата $ × 0,75% × курс постоплаты";
+  if (name === "Комиссия за перевод") return "0,75% × (постоплата $ + ещё не оплаченный долг $) × курс";
   if (name === "НДС и НсП") return form["Страна"] === "РФ" ? "кг × (НДС 12% + НсП 4% × (цена в сомах + НДС + логистика за кг + плановая маржа))" : "4% × цена продажи × кг";
   if (name === "Плановая маржа для НсП, сом/кг") return "входит в базу НсП; по умолчанию из настроек (15 сом/кг)";
   if (name === "Выгрузка / логистика" && form["Страна"] === "РФ") return "логистика сом/кг × кг";
@@ -165,7 +165,7 @@ function saveEstimateDraft(value: Entry | null) {
 }
 const autoBatchFields = ["Комиссия за перевод", "НДС и НсП", "Выгрузка / логистика"];
 const batchDrivers: Record<string, string[]> = {
-  "Комиссия за перевод": ["Постоплата $", "Курс постоплаты", "Страна"],
+  "Комиссия за перевод": ["Постоплата $", "Курс постоплаты", "Страна", "Кг", "Цена $/кг", "Доставка, $", "Предоплата $", "Курс предоплаты", "Курс $ для отчёта"],
   "НДС и НсП": ["Страна", "Кг", "Цена продажи сом/кг", "Цена ₽/кг", "Курс ₽→сом", "Логистика, сом/кг", "Плановая маржа для НсП, сом/кг"],
   "Выгрузка / логистика": ["Логистика, сом/кг", "Кг", "Страна"],
 };
@@ -258,8 +258,9 @@ export default function Workspace({ initial, user }: { initial: DataResult; user
     const china = row["Страна"] !== "РФ";
     const prepaid = paid > 0;
     open("payment", { "Дата": today(), "Направление": "Расход", "Категория": "Оплата поставщику", "Партия": row.id, "Контрагент": row["ПоставщикId"] ?? "", "В расчёт с контрагентом": false,
-      "Валюта": china ? "$" : "сом", "Курс": china ? (prepaid ? row["Курс постоплаты"] : row["Курс предоплаты"]) ?? "" : "",
-      "Сумма": china ? (prepaid ? row["Постоплата $"] : row["Предоплата $"]) ?? "" : Math.max(0, n(row["Оплачено поставщику, сом"]) - paid) || "",
+      // the postpayment not entered on the card yet: offer the debt still due to China (goods − delivery − prepayment)
+      "Валюта": china ? "$" : "сом", "Курс": china ? (prepaid ? row["Курс постоплаты"] || lastRate(row) || "" : row["Курс предоплаты"]) ?? "" : "",
+      "Сумма": china ? (prepaid ? n(row["Постоплата $"]) || Math.max(0, Math.round(supplierDebtUsd(row) * 100) / 100) || "" : row["Предоплата $"]) ?? "" : Math.max(0, n(row["Оплачено поставщику, сом"]) - paid) || "",
       "Описание": `${prepaid ? "Постоплата" : "Предоплата"} по партии ${text(row["Партия"]) || text(row["Номер партии"])}` });
   };
   const addProductToBatch = (row: Row) => open("batch", Object.fromEntries(sharedBatchFields.map((key) => [key, row[key + "Id"] ?? (key.startsWith("Дата") ? dateInput(row[key]) : row[key]) ?? ""])));

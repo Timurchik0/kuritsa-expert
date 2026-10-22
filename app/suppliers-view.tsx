@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { CalcInfo } from "./calc-info";
 import { PREPAID, batchDetail } from "./batch-calculations";
-import { prepaidShares } from "./finance";
+import { plannedTransfersSom, prepaidShares } from "./finance";
 import type { Dataset, Row } from "./actions";
 import { contactInfo } from "./record-info";
 import { Pager, SearchSelect, Segmented, SortDirection, date, fmt, labelOf, n, panel, som, td, text, th, usd } from "./ui-kit";
@@ -25,7 +25,8 @@ export default function SuppliersView({ data, stages, onOpenBatch }: { data: Dat
   const q = search.toLocaleLowerCase("ru");
   const rows = data.batches.filter((b) => b["Страна"] === country && (!status || b["Статус"] === status) && (!q || `${text(b["Партия"])} ${text(b["Импортёр"])} ${text(b["Номер фуры"])}`.toLocaleLowerCase("ru").includes(q)))
     .sort((a, b) => { const d = text(a["Дата предоплаты"] ?? a["Дата прибытия"]).localeCompare(text(b["Дата предоплаты"] ?? b["Дата прибытия"])) || (parseInt(text(a["Номер партии"]).replace(/\D+/g, ""), 10) || 0) - (parseInt(text(b["Номер партии"]).replace(/\D+/g, ""), 10) || 0); return desc ? -d : d; });
-  const paid = rows.reduce((s, r) => s + n(r["Оплачено поставщику, сом"]), 0);
+  // what was sent to China by the plan (prepayment + postpayment), not the purchase incl. the debt still due
+  const paid = rows.reduce((s, r) => s + plannedTransfersSom(r), 0);
   const debt = rows.reduce((s, r) => s + n(r["Долг поставщику, $"]), 0);
   // advance of a batch on the way: paid by cash + its share of the supplier's earlier prepayment (as on the batch cards)
   const prepaid = prepaidShares(data);
@@ -48,7 +49,7 @@ export default function SuppliersView({ data, stages, onOpenBatch }: { data: Dat
         <td className={`${td} font-medium`}>{text(b["Партия"])}</td><td className={td}><Badge variant="outline">{text(b["Статус"])}</Badge></td>
         <td className={`${td} whitespace-nowrap text-[#7d8b81]`}>{date(b["Дата предоплаты"])}</td><td className={`${td} text-right tabular-nums`}>{usd(b["Предоплата $"])}</td><td className={`${td} text-right tabular-nums`}>{fmt(b["Курс предоплаты"], 2)}</td>
         <td className={`${td} whitespace-nowrap text-[#7d8b81]`}>{date(b["Дата постоплаты"])}</td><td className={`${td} text-right tabular-nums`}>{usd(b["Постоплата $"])}</td><td className={`${td} text-right tabular-nums`}>{fmt(b["Курс постоплаты"], 2)}</td>
-        <td className={`${td} whitespace-nowrap text-right tabular-nums`} onClick={(e) => e.stopPropagation()}>{cell(b, "Оплачено поставщику, сом", som(b["Оплачено поставщику, сом"]))}</td>
+        <td className={`${td} whitespace-nowrap text-right tabular-nums`} onClick={(e) => e.stopPropagation()}><span className="inline-flex items-center gap-1">{som(plannedTransfersSom(b))}<CalcInfo label="Оплачено, сом" formula="Предоплата $ × курс предоплаты + постоплата $ × курс постоплаты (по плану в карточке партии). Ещё не оплаченный долг сюда не входит — он в колонке «Долг»." substitution={`${fmt(b["Предоплата $"], 2)} × ${fmt(b["Курс предоплаты"], 2)} + ${fmt(b["Постоплата $"], 2)} × ${fmt(b["Курс постоплаты"], 2)} = ${som(plannedTransfersSom(b))}`} source={`Партия ${text(b["Номер партии"])}`} excel="Китай!R (отправлено)" /></span></td>
         <td className={`${td} whitespace-nowrap text-right tabular-nums`} onClick={(e) => e.stopPropagation()}>{cell(b, "Стоимость товара, $", usd(b["Стоимость товара, $"]))}</td>
         <td className={`${td} whitespace-nowrap text-right tabular-nums ${n(b["Долг поставщику, $"]) > 0 ? "font-semibold text-[#a36a2f]" : ""}`} onClick={(e) => e.stopPropagation()}>{cell(b, "Долг поставщику, $", usd(b["Долг поставщику, $"]))}</td>
         <td className={`${td} whitespace-nowrap text-right tabular-nums`} onClick={(e) => e.stopPropagation()}>{advanceCell(b)}</td>
