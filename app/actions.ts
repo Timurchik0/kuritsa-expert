@@ -501,7 +501,17 @@ export async function receiveBatch(id: string) {
   const links = await readOne("batches", id, ["ТоварId", "ПоставщикId", "Оплачено поставщику, сом"]);
   const productId = links["ТоварId"], supplier = links["ПоставщикId"] ?? null, purchase = num(links["Оплачено поставщику, сом"]);
   const existing = (await readTable("movements")).filter((m) => m["ПартияId"] === id && m["Тип"] === "Приход");
-  if (existing.length) throw new Error("Приход для этой партии уже зарегистрирован");
+  if (existing.length) {
+    // the goods were already put on stock by hand and that receipt was linked to this batch: the batch takes it as its
+    // arrival — no second receipt, and the supplier keeps what that receipt booked
+    await update("batches", id, writable("batches", { "Статус": "На складе", "Дата прибытия": localDay(existing[0]["Дата"]) || null }));
+    if (existing.some((m) => m["В расчёт с контрагентом"] && m["КонтрагентId"])) {
+      for (const p of (await readTable("payments")).filter((p) => p["ПартияId"] === id && p["Категория"] === "Оплата поставщику" && !p["В расчёт с контрагентом"] && p["КонтрагентId"])) {
+        await update("payments", p.id, writable("payments", { "В расчёт с контрагентом": true }));
+      }
+    }
+    return existing[0].id;
+  }
   if (!productId || num(batch["Кг"]) <= 0) throw new Error("У партии должны быть товар и положительный вес");
   const product = await readOne("products", String(productId), ["Кг в коробке"]);
   const kgPerBox = num(product["Кг в коробке"]);
