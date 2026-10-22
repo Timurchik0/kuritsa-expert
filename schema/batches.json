@@ -521,13 +521,13 @@
       "name": "Оплачено поставщику, сом",
       "dbFieldName": "Oplacheno_postavshchiku_som",
       "type": "formula",
-      "description": "Предоплата $ × курс + постоплата $ × курс (Китай) или цена ₽ × курс × кг (РФ)",
+      "description": "Закупка у поставщика в сомах: Китай — предоплата и постоплата по своим курсам + ещё не оплаченный долг по последнему курсу; РФ — цена ₽ × курс × кг",
       "options": {
-        "expression": "{fldumsxJovB2GFvdjKQ}*{fld6nXbYiztchUp843e}+{fld6F7utpXXBEBmMzlk}*{fldTo53LCw79OtEKK1L}+{fldlRs5pftnHsmKf5VA}*{fld6QHpCOH5PKza6dr0}*{fldS6YUGQkbWY1g5jYt}",
+        "expression": "{fldumsxJovB2GFvdjKQ}*{fld6nXbYiztchUp843e}+{fld6F7utpXXBEBmMzlk}*{fldTo53LCw79OtEKK1L}+{fld6Q1BL4OzohOONmq6}*IF({fldTo53LCw79OtEKK1L}>0, {fldTo53LCw79OtEKK1L}, IF({fld6nXbYiztchUp843e}>0, {fld6nXbYiztchUp843e}, {fldHeoGhyp58GxYodko}))+{fldlRs5pftnHsmKf5VA}*{fld6QHpCOH5PKza6dr0}*{fldS6YUGQkbWY1g5jYt}",
         "timeZone": "Asia/Bishkek",
         "formatting": {
           "type": "decimal",
-          "precision": 0
+          "precision": 2
         }
       },
       "cellValueType": "number",
@@ -540,13 +540,13 @@
       "name": "Долг поставщику, $",
       "dbFieldName": "Dolg_postavshchiku",
       "type": "formula",
-      "description": "Сколько ещё доплатить Китаю",
+      "description": "Китай: стоимость товара − доставка (платим здесь) − предоплата − постоплата",
       "options": {
-        "expression": "IF({fldmZXubrc9d7XwqFrZ}='Китай', {fldUrkoFuCL5K41kiH1}-{fldumsxJovB2GFvdjKQ}-{fld6F7utpXXBEBmMzlk}, 0)",
+        "expression": "IF({fldmZXubrc9d7XwqFrZ}='Китай', {fldUrkoFuCL5K41kiH1}-{fldWZyrMronp2NbQCR4}-{fldumsxJovB2GFvdjKQ}-{fld6F7utpXXBEBmMzlk}, 0)",
         "timeZone": "Asia/Bishkek",
         "formatting": {
           "type": "decimal",
-          "precision": 0
+          "precision": 2
         }
       },
       "cellValueType": "number",
@@ -559,13 +559,13 @@
       "name": "Себестоимость итого, сом",
       "dbFieldName": "Sebestoimost_itogo_som",
       "type": "formula",
-      "description": "Оплата поставщику + комиссия + банк + пошлина + НДС/НсП + прочие + выгрузка/логистика",
+      "description": "Закупка у поставщика + доставка (Китай) + комиссия + банк + пошлина + НДС/НсП + прочие + выгрузка/логистика сверх плана",
       "options": {
-        "expression": "{fldKJJgoQWeDof49Zdm}+{fld9k9EJcVX1nGx02zg}+{fldgShV2jwZLL4cq51W}+{fldcrrIjvjMiaVVTtcZ}+{fldLVzdsNcZGLativFb}+{fld2jUtolX7OcttnIaq}+{fldCrzm7ZTyF4qlKRiB}",
+        "expression": "{fldKJJgoQWeDof49Zdm}+{fldHl2JNPRUJxZv2aay}+{fld9k9EJcVX1nGx02zg}+{fldgShV2jwZLL4cq51W}+{fldcrrIjvjMiaVVTtcZ}+{fldLVzdsNcZGLativFb}+{fld2jUtolX7OcttnIaq}+{fldCrzm7ZTyF4qlKRiB}",
         "timeZone": "Asia/Bishkek",
         "formatting": {
           "type": "decimal",
-          "precision": 0
+          "precision": 2
         }
       },
       "cellValueType": "number",
@@ -808,6 +808,59 @@
       "description": null,
       "options": {
         "expression": "sum({values})",
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": true,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldWZyrMronp2NbQCR4",
+      "name": "Доставка, $",
+      "dbFieldName": "Dostavka",
+      "type": "number",
+      "description": "Китай: доставка, которая входит в стоимость товара, но оплачивается здесь водителю (не Китаю) — план",
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 2
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldF6bHqZvNuvuCdLvk",
+      "name": "Курс доставки",
+      "dbFieldName": "Kurs_dostavki",
+      "type": "number",
+      "description": "Курс $ для доставки; пусто — курс постоплаты, предоплаты или отчёта",
+      "options": {
+        "formatting": {
+          "type": "decimal",
+          "precision": 4
+        }
+      },
+      "cellValueType": "number",
+      "isLookup": null,
+      "isComputed": null,
+      "isMultipleCellValue": false
+    },
+    {
+      "id": "fldHl2JNPRUJxZv2aay",
+      "name": "Доставка, сом",
+      "dbFieldName": "Dostavka_som",
+      "type": "formula",
+      "description": "Китай: доставка $ × курс доставки (пусто — курс постоплаты, предоплаты или отчёта)",
+      "options": {
+        "expression": "IF({fldmZXubrc9d7XwqFrZ}='Китай', {fldWZyrMronp2NbQCR4}*IF({fldF6bHqZvNuvuCdLvk}>0, {fldF6bHqZvNuvuCdLvk}, IF({fldTo53LCw79OtEKK1L}>0, {fldTo53LCw79OtEKK1L}, IF({fld6nXbYiztchUp843e}>0, {fld6nXbYiztchUp843e}, {fldHeoGhyp58GxYodko}))), 0)",
+        "timeZone": "utc",
         "formatting": {
           "type": "decimal",
           "precision": 2

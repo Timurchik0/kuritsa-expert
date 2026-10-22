@@ -64,8 +64,18 @@ export function russiaMargin(form: Record<string, unknown>, data: Dataset) {
   return own !== "" && own != null && Number.isFinite(Number(own)) ? Number(own) : setting(data, RUSSIA_MARGIN) ?? RUSSIA_MARGIN_DEFAULT;
 }
 
+// China: the goods price includes the delivery, which is paid here to the driver — not owed to the supplier
+const isChina = (row: Record<string, unknown>) => row["Страна"] !== "РФ";
+/** Latest known $ rate of a China batch: postpayment, else prepayment, else the report rate */
+export const lastRate = (row: Record<string, unknown>) => amount(row["Курс постоплаты"]) || amount(row["Курс предоплаты"]) || amount(row["Курс $ для отчёта"]);
+/** Still owed to China, $: goods − delivery − prepayment − postpayment (same as the base formula) */
+export const supplierDebtUsd = (row: Record<string, unknown>) => isChina(row) ? amount(row["Кг"]) * amount(row["Цена $/кг"]) - amount(row["Доставка, $"]) - amount(row["Предоплата $"]) - amount(row["Постоплата $"]) : 0;
+/** Delivery of a China batch in сом */
+export const deliverySom = (row: Record<string, unknown>) => isChina(row) ? amount(row["Доставка, $"]) * (amount(row["Курс доставки"]) || lastRate(row)) : 0;
+
+/** Purchase from the supplier in сом: China — paid parts at their rates + the debt at the latest rate; РФ — ₽ price × rate × kg */
 export function supplierPaidSom(row: Record<string, unknown>) {
-  return amount(row["Предоплата $"]) * amount(row["Курс предоплаты"]) + amount(row["Постоплата $"]) * amount(row["Курс постоплаты"]) + amount(row["Цена ₽/кг"]) * amount(row["Курс ₽→сом"]) * amount(row["Кг"]);
+  return amount(row["Предоплата $"]) * amount(row["Курс предоплаты"]) + amount(row["Постоплата $"]) * amount(row["Курс постоплаты"]) + supplierDebtUsd(row) * lastRate(row) + amount(row["Цена ₽/кг"]) * amount(row["Курс ₽→сом"]) * amount(row["Кг"]);
 }
 
 export function batchEstimates(form: Record<string, unknown>, data: Dataset) {
