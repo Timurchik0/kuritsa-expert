@@ -395,7 +395,7 @@ async function stockKg(product: string, exceptId?: string) {
 const kgText = (value: number) => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(value);
 
 export async function updateMovement(id: string, input: Record<string, unknown>) {
-  const current = await readOne("movements", id, ["Тип", "ТоварId", "Кг"]);
+  const current = await readOne("movements", id, ["Тип", "ТоварId", "Кг", "ПартияId"]);
   const kind = String(current["Тип"]);
   const allowed = ["Дата", "Товар", "Партия", "Контрагент", "Коробки", "Кг", "Цена сом/кг", "Цена плановая продажная, сом/кг", "Сумма вручную", "В расчёт с контрагентом", "Комментарий"];
   if (Object.keys(input).some((name) => !allowed.includes(name))) throw new Error("Это поле движения менять нельзя");
@@ -407,8 +407,21 @@ export async function updateMovement(id: string, input: Record<string, unknown>)
     if (!input["Контрагент"]) throw new Error("Укажите контрагента");
     const stock = await stockKg(String(product), id);
     if (num(input["Кг"]) > stock + 0.005) throw new Error(`Вес превышает остаток на складе (${kgText(stock)} кг)`);
+    // (rows without weight are settlement sums imported from Excel: they keep their own amount)
+    if (num(input["Кг"]) > 0 && num(input["Цена сом/кг"]) <= 0 && num(input["Сумма вручную"]) <= 0) throw new Error("Укажите цену продажи");
+    // another batch or product: the planned price follows it, as when the shipment is created
+    const moved = (input["Партия"] || null) !== (current["ПартияId"] ?? null) || product !== current["ТоварId"];
+    if (moved && Object.hasOwn(input, "Цена плановая продажная, сом/кг")) {
+      const plan = input["Партия"] ? num((await readOne("batches", String(input["Партия"]), ["Цена продажи сом/кг"]))["Цена продажи сом/кг"]) : 0;
+      input = { ...input, "Цена плановая продажная, сом/кг": plan || num((await readOne("products", String(product), ["Средняя плановая цена, сом/кг"]))["Средняя плановая цена, сом/кг"]) || input["Цена плановая продажная, сом/кг"] };
+    }
   }
   if (kind === "Приход") {
+    // a receipt is never valued at 0, and one in settlement with a supplier takes out the purchase sum, not kg × price
+    const plan = num(input["Цена плановая продажная, сом/кг"]) || num(input["Цена сом/кг"]);
+    if (Object.hasOwn(input, "Цена плановая продажная, сом/кг") && plan <= 0 && num(input["Кг"]) > 0) throw new Error("Укажите цену или плановую цену продажи");
+    if (plan > 0 && Object.hasOwn(input, "Цена плановая продажная, сом/кг")) input = { ...input, "Цена плановая продажная, сом/кг": plan };
+    if (input["В расчёт с контрагентом"] && input["Контрагент"] && num(input["Сумма вручную"]) <= 0) throw new Error("Укажите сумму закупки — она уйдёт из расчётов с поставщиком");
     // a smaller (or moved) receipt must still cover what was already shipped
     // (stock that was already negative in the imported history does not block corrections)
     const others = await stockKg(String(current["ТоварId"]), id);
@@ -416,16 +429,19 @@ export async function updateMovement(id: string, input: Record<string, unknown>)
     if (left < -0.005 && others + num(current["Кг"]) >= -0.005) throw new Error(`После изменения остаток товара станет отрицательным (${kgText(left)} кг) — по нему уже есть отгрузки`);
   }
   if (input["В расчёт с контрагентом"] && !input["Контрагент"]) throw new Error("Выберите контрагента для расчёта");
-  return (await update("movements", id, writable("movements", input))).id;
+  const saved = (await update("movements", id, writable("movements", input))).id;
+  // the receipt left its batch: that batch is on its way again if nothing else arrived for it
+  if (kind === "Приход" && Object.hasOwn(input, "Партия") && (input["Партия"] || null) !== (current["ПартияId"] ?? null)) await reopenBatchWithoutReceipt(current["ПартияId"], id);
+  return saved;
 }
 
 // What may not be deleted while other records point at it: table → [child table, link field, label]
 const DEPENDENTS: Partial<Record<TableKey, [TableKey, string, string][]>> = {
   products: [["movements", "ТоварId", "движений склада"], ["batches", "ТоварId", "партий"], ["quotas", "ТоварId", "квот"], ["licenses", "ТоварId", "лицензий"], ["requests", "ТоварId", "заявок"]],
-  contacts: [["movements", "КонтрагентId", "движений склада"], ["payments", "КонтрагентId", "платежей"], ["batches", "ПоставщикId", "партий"]],
+  contacts: [["movements", "КонтрагентId", "движений склада"], ["payments", "КонтрагентId", "платежей"], ["batches", "ПоставщикId", "партий"], ["accounts", "Взаиморасчёт с контрагентомId", "счетов (взаиморасчёт по кассам)"], ["payments", "Держатель счётаId", "платежей по его кассам"]],
   accounts: [["payments", "СчётId", "платежей"]],
   entities: [["quotas", "ЮрлицоId", "квот"]],
-  batches: [["movements", "ПартияId", "движений склада (приход/отгрузки)"], ["payments", "ПартияId", "платежей"]],
+  batches: [["movements", "ПартияId", "движений склада (приход/отгрузки)"], ["payments", "ПартияId", "платежей"], ["taxes", "ПартияId", "предстоящих оплат"]],
   quotas: [["licenses", "КвотаId", "лицензий"]],
   licenses: [["requests", "ЛицензияId", "заявок"]],
 };
@@ -438,8 +454,10 @@ export async function deleteEntity(key: TableKey, id: string) {
     const count = (await readTable(child)).filter((row) => row[link] === id).length;
     if (count) throw new Error(`Нельзя удалить: на запись ссылаются ${count} ${label}. Сначала удалите или перенесите их.`);
   }
+  let reopen: unknown = null;
   if (key === "movements") {
-    const m = await readOne("movements", id, ["Тип", "ТоварId"]);
+    const m = await readOne("movements", id, ["Тип", "ТоварId", "ПартияId"]);
+    if (m["Тип"] === "Приход") reopen = m["ПартияId"];
     if (m["Тип"] === "Приход" && m["ТоварId"]) {
       const left = await stockKg(String(m["ТоварId"]), id);
       const kg = num((await readOne("movements", id, ["Кг"]))["Кг"]);
@@ -457,6 +475,7 @@ export async function deleteEntity(key: TableKey, id: string) {
   // a transfer goes as a whole: its other half is removed too
   const pair = key === "payments" && field("payments", PAIR) ? (await readOne("payments", id, [`${PAIR}Id`]))[`${PAIR}Id`] as string | null ?? null : null;
   await deleteRecordSafe(key, id);
+  if (reopen) await reopenBatchWithoutReceipt(reopen, id);
   if (pair) { try { await deleteRecordSafe("payments", pair); } catch { throw new Error("Платёж удалён, а парный платёж перевода — нет. Удалите его в кассе вручную."); } }
   return id;
 }
@@ -505,11 +524,7 @@ export async function receiveBatch(id: string) {
     // the goods were already put on stock by hand and that receipt was linked to this batch: the batch takes it as its
     // arrival — no second receipt, and the supplier keeps what that receipt booked
     await update("batches", id, writable("batches", { "Статус": "На складе", "Дата прибытия": localDay(existing[0]["Дата"]) || null }));
-    if (existing.some((m) => m["В расчёт с контрагентом"] && m["КонтрагентId"])) {
-      for (const p of (await readTable("payments")).filter((p) => p["ПартияId"] === id && p["Категория"] === "Оплата поставщику" && !p["В расчёт с контрагентом"] && p["КонтрагентId"])) {
-        await update("payments", p.id, writable("payments", { "В расчёт с контрагентом": true }));
-      }
-    }
+    if (existing.some((m) => m["В расчёт с контрагентом"] && m["КонтрагентId"])) await settleBatchPayments(id, true);
     return existing[0].id;
   }
   if (!productId || num(batch["Кг"]) <= 0) throw new Error("У партии должны быть товар и положительный вес");
@@ -528,17 +543,37 @@ export async function receiveBatch(id: string) {
       // money paid by cash for this batch stops counting as an advance and counts directly instead (below)
       ...(supplier && purchase > 0 ? { "Контрагент": supplier, "Сумма вручную": purchase, "В расчёт с контрагентом": true } : { "В расчёт с контрагентом": false }),
     }));
+    // the receipt exists from here on: a failure below must not send the batch back on its way
     if (supplier && purchase > 0) {
-      for (const p of (await readTable("payments")).filter((p) => p["ПартияId"] === id && p["Категория"] === "Оплата поставщику" && !p["В расчёт с контрагентом"] && p["КонтрагентId"])) {
-        await update("payments", p.id, writable("payments", { "В расчёт с контрагентом": true }));
-      }
+      try { await settleBatchPayments(id, true); }
+      catch { throw new Error("Партия принята, но оплаты по ней не переведены в расчёт с поставщиком. Откройте и сохраните эти оплаты в кассе."); }
     }
     return movement.id;
   } catch (error) {
+    if ((error as Error).message.startsWith("Партия принята")) throw error;
     try { await update("batches", id, writable("batches", { "Статус": batch["Статус"], "Дата прибытия": batch["Дата прибытия"] ? localDay(batch["Дата прибытия"]) : null })); }
     catch { throw new Error("Приход не создан, а статус партии не удалось восстановить. Проверьте партию вручную."); }
     throw error;
   }
+}
+
+// Cash payments to the supplier for a batch count through its advance while it is on its way and directly once its
+// receipt booked the purchase against the supplier: switch them when the batch arrives (true) or its receipt goes (false)
+async function settleBatchPayments(batchId: string, direct: boolean) {
+  for (const p of (await readTable("payments")).filter((p) => p["ПартияId"] === batchId && p["Категория"] === "Оплата поставщику" && Boolean(p["В расчёт с контрагентом"]) !== direct && p["КонтрагентId"])) {
+    await update("payments", p.id, writable("payments", { "В расчёт с контрагентом": direct }));
+  }
+}
+
+// A batch whose only receipt is removed (deleted, or moved to another batch) is on its way again, so it can be received anew
+async function reopenBatchWithoutReceipt(batchId: unknown, exceptId: string) {
+  if (!batchId) return;
+  const left = (await readTable("movements")).some((m) => m["ПартияId"] === batchId && m["Тип"] === "Приход" && m.id !== exceptId);
+  if (left) return;
+  const b = await readOne("batches", String(batchId), ["Статус"]);
+  if (b["Статус"] !== "На складе") return;
+  await update("batches", String(batchId), writable("batches", { "Статус": "В пути", "Дата прибытия": null }));
+  await settleBatchPayments(String(batchId), false);
 }
 
 /** What an upcoming batch payment can be paid as: batch costs, or the rest of the supplier's price still owed */

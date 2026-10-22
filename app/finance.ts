@@ -160,8 +160,11 @@ export function datasetAsOf(data: Dataset, day: string): Dataset {
     const turnover = sumBy(pays, "СчётId", a.id, "Движение по счёту");
     return { ...a, "Оборот по счёту": turnover, "Остаток": amount(a["Остаток на начало"]) + turnover };
   });
+  // a supplier payment of a batch switched to direct settlement on its arrival was still an advance on this day
+  const onTheWay = new Set(batches.filter((b) => transitStatuses.includes(String(b["Статус"]))).map((b) => b.id));
+  const settled = pays.filter((p) => !(p["Категория"] === "Оплата поставщику" && p["ПартияId"] && onTheWay.has(String(p["ПартияId"]))));
   const contacts = data.contacts.map((c) => {
-    const shipped = sumBy(moves, "КонтрагентId", c.id, "Влияние на долг"), paid = sumBy(pays, "КонтрагентId", c.id, "Влияние на долг");
+    const shipped = sumBy(moves, "КонтрагентId", c.id, "Влияние на долг"), paid = sumBy(settled, "КонтрагентId", c.id, "Влияние на долг");
     const advances = batches.reduce((s, b) => b["ПоставщикId"] === c.id ? s + amount(b["Аванс поставщику (в пути), сом"]) : s, 0);
     const viaAccounts = sumBy(pays, "Держатель счётаId", c.id, "Влияние на долг держателя");
     return { ...c, "Отгрузки в долг": shipped, "Платежи в расчёт": paid, "Авансы за партии в пути": advances, "Через кассы (взаиморасчёт)": viaAccounts, "Баланс": amount(c["Сальдо на начало"]) + shipped + paid + advances + viaAccounts };
