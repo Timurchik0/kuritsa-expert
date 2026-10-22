@@ -46,13 +46,20 @@ export function calculateSummary(data: Dataset) {
   const soldProfitSom = sold.reduce((sum, row) => sum + amount(row["Прибыль, сом"]), 0);
   const soldProfitUsd = sold.reduce((sum, row) => sum + amount(row["Прибыль, $"]), 0);
   const soldRevenue = sold.reduce((sum, row) => sum + amount(row["Выручка, сом"]), 0);
+  // profit of the batches that arrived (на складе / продана): the plan, and the plan with the sold ones at the fact —
+  // a sold batch's actual price shows in its shipments' deviation from the planned price
+  const arrived = data.batches.filter((row) => ["На складе", "Продана"].includes(String(row["Статус"])) && amount(row["Цена продажи сом/кг"]) > 0);
+  const deviationOf = (batchId: string) => (data.movements ?? []).reduce((sum, m) => m["ПартияId"] === batchId && m["Тип"] === "Отгрузка" ? sum + amount(m["Отклонение от плана, сом"]) : sum, 0);
+  const plannedProfitSom = arrived.reduce((sum, row) => sum + amount(row["Прибыль, сом"]), 0);
+  const soldDeviationSom = arrived.filter((row) => row["Статус"] === "Продана").reduce((sum, row) => sum + deviationOf(row.id), 0);
+  const factProfitSom = plannedProfitSom + soldDeviationSom;
   return {
     accounts, clientsOwe, clientAdvances, partners, borrowers, others, counterparts,
     inTransit, suppliers, unlinkedTransit, lenders, stock, turnover, loans, capital, taxes, upcoming, rate,
     turnoverUsd: rate && rate > 0 ? turnover / rate : null,
     capitalUsd: rate && rate > 0 ? capital / rate : null,
     realUsd: rate && rate > 0 ? (capital - taxes - upcoming) / rate : null,
-    soldProfitSom, soldProfitUsd,
+    soldProfitSom, soldProfitUsd, plannedProfitSom, soldDeviationSom, factProfitSom, arrivedCount: arrived.length,
     soldMargin: soldRevenue > 0 ? soldProfitSom / soldRevenue * 100 : 0,
     soldCount: sold.length,
   };
