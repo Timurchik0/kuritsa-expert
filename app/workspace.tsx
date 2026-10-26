@@ -84,7 +84,18 @@ function withContactChange(contact: Row, impact: number, dateField: "После�
 }
 const temp = (values: Entry): Row => ({ id: `temp-${crypto.randomUUID()}`, ...values });
 const batchLabel = (name: string, form: Entry) => name === "Выгрузка / логистика" && form["Страна"] === "РФ" ? "Логистика итого, сом · авто" : name === "Выгрузка / логистика" ? "Выгрузка / логистика сверх плана, сом" : ["Комиссия за перевод", "НДС и НсП"].includes(name) ? `${name} · авто` : name === "Цена ₽/кг" ? "Цена закупки, ₽/кг" : name === "Курс ₽→сом" ? "Курс ₽ → сом" : name === "Цена продажи сом/кг" ? "Цена продажи плановая, сом/кг" : name;
+// next batch number of a country: the largest leading number among its batches + 1 («65/2» counts as 65, «РФ-20» → «РФ-21»)
+function nextBatchNumber(batches: Row[], country: unknown) {
+  let best: { prefix: string; value: number } | null = null;
+  for (const b of batches) {
+    if ((text(b["Страна"]) || "Китай") !== (text(country) || "Китай")) continue;
+    const m = /^(\D*)(\d+)/.exec(text(b["Номер партии"]).trim());
+    if (m && (!best || Number(m[2]) > best.value)) best = { prefix: m[1], value: Number(m[2]) };
+  }
+  return best ? `${best.prefix}${best.value + 1}` : "";
+}
 function batchNote(name: string, form: Entry) {
+  if (name === "Номер партии") return "для новой партии — следующий номер по стране; можно изменить";
   if (name === "Комиссия за перевод") return "0,75% × (постоплата $ + ещё не оплаченный долг $) × курс";
   if (name === "НДС и НсП") return form["Страна"] === "РФ" ? "кг × (НДС 12% + НсП 4% × (цена в сомах + НДС + логистика за кг + плановая маржа))" : "4% × цена продажи × кг";
   if (name === "Плановая маржа для НсП, сом/кг") return "входит в базу НсП; по умолчанию из настроек (15 сом/кг)";
@@ -215,7 +226,8 @@ export default function Workspace({ initial, user }: { initial: DataResult; user
   const countryBatches = data.batches.filter((b) => (text(b["Страна"]) || "Китай") === batchCountry);
   const activeContact = selectedContact ? data.contacts.find((contact) => contact.id === selectedContact.id) ?? selectedContact : null;
   const patch = (name: string, value: unknown) => setForm((old) => ({ ...old, [name]: value }));
-  const open = (name: Modal, defaults: Entry = {}, row: Row | null = null) => {
+  const withBatchNumber = (form: Entry): Entry => text(form["Номер партии"]).trim() ? form : { ...form, "Номер партии": nextBatchNumber(data.batches, form["Страна"]) };
+  const open =(name: Modal, defaults: Entry = {}, row: Row | null = null) => {
     setSelectedBatch(name === "batch" ? row : null);
     setSelectedTax(name === "taxPayment" ? row : null);
     setConfirmBatchDelete(false);
@@ -224,7 +236,7 @@ export default function Workspace({ initial, user }: { initial: DataResult; user
     const rate = setting(data, REPORT_RATE);
     setForm(name === "estimate" ? loadEstimateDraft() ?? { "Страна": batchCountry, "Курс $ для отчёта": rate ?? "", "Плановая маржа для НсП, сом/кг": setting(data, RUSSIA_MARGIN) ?? RUSSIA_MARGIN_DEFAULT }
       : name === "batch" ? row ? { ...Object.fromEntries(batchFields.flatMap((group) => group.names).map((key) => [key, row[key + "Id"] ?? (key.startsWith("Дата") ? dateInput(row[key]) : row[key]) ?? ""])), "Заявка": data.requests.find((r) => r["ПартияId"] === row.id)?.id ?? "" }
-      : { "Статус": "Предоплата", "Страна": batchCountry, "Курс $ для отчёта": rate ?? "", "Плановая маржа для НсП, сом/кг": setting(data, RUSSIA_MARGIN) ?? RUSSIA_MARGIN_DEFAULT, ...defaults }
+      : withBatchNumber({ "Статус": "Предоплата", "Страна": batchCountry, "Курс $ для отчёта": rate ?? "", "Плановая маржа для НсП, сом/кг": setting(data, RUSSIA_MARGIN) ?? RUSSIA_MARGIN_DEFAULT, ...defaults })
       : name === "reconciliation" ? { "Дата свода": today(), "Остаток на начало, $": latest?.["Факт остаток, $"] ?? 0, "Факт остаток, $": summary.realUsd == null ? "" : Math.round(summary.realUsd * 100) / 100, "Факт расходов, $": 0, ...defaults }
       : { "Дата": today(), ...defaults });
     setModal(name);
@@ -239,6 +251,8 @@ export default function Workspace({ initial, user }: { initial: DataResult; user
       if (recalc("Комиссия за перевод") && estimates.commission != null) next["Комиссия за перевод"] = next["Страна"] === "РФ" ? 0 : estimates.commission;
       if (recalc("НДС и НсП") && estimates.tax != null) next["НДС и НсП"] = estimates.tax;
       if (recalc("Выгрузка / логистика") && next["Страна"] === "РФ" && n(next["Логистика, сом/кг"]) > 0) next["Выгрузка / логистика"] = Math.round(n(next["Логистика, сом/кг"]) * n(next["Кг"]) * 100) / 100;
+      // a new batch switched to the other country takes that country's next number, unless the number was typed by hand
+      if (name === "Страна" && !selectedBatch && text(previous["Номер партии"]) === nextBatchNumber(data.batches, previous["Страна"])) next["Номер партии"] = nextBatchNumber(data.batches, value);
       if (name === "Страна" && next["Товар"]) { const product = data.products.find((p) => p.id === next["Товар"]); if (product?.["Страна"] && product["Страна"] !== value) next["Товар"] = ""; }
       // quota → license → request: picking a child fills its parents, changing a parent drops children that no longer fit
       const license = data.licenses.find((l) => l.id === next["Лицензия"]);
