@@ -37,7 +37,7 @@ export const EDITORS: Record<EditKind, { table: TableKey; singular: string; crea
   movements: { table: "movements", singular: "движение склада", created: "Движение сохранено", fields: [
     { name: "Дата", kind: "date", required: true }, { name: "Тип", kind: "text", readonly: true }, { name: "Товар", kind: "select", required: true, options: rows("products") },
     { name: "Партия", kind: "select", options: rows("batches", "Партия") }, { name: "Контрагент", kind: "select", options: contactsGrouped }, { name: "Коробки", kind: "number" }, { name: "Кг", kind: "number", required: true },
-    { name: "Цена сом/кг", kind: "number" }, { name: "Цена плановая продажная, сом/кг", kind: "number" }, { name: "Сумма вручную", kind: "number", label: "Сумма вручную, сом (если не кг × цена)" },
+    { name: "Цена сом/кг", kind: "number" }, { name: "Цена плановая продажная, сом/кг", kind: "number" }, { name: "Сумма вручную", kind: "number", label: (f) => f["Тип"] === "Приход" ? "Сумма закупки у поставщика, сом (списывается с его баланса)" : "Сумма вручную, сом (если не кг × цена)" },
     { name: "В расчёт с контрагентом", kind: "checkbox" }, comment] },
   payments: { table: "payments", singular: "платёж", created: "Платёж сохранён", fields: [
     { name: "Дата", kind: "date", required: true }, { name: "Счёт", kind: "select", required: true, options: rows("accounts") }, { name: "Направление", kind: "select", required: true, options: list("Приход", "Расход") },
