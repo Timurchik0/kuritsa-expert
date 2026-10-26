@@ -295,8 +295,8 @@ export async function saveRecord(key: TableKey, input: Record<string, unknown>, 
   if (key === "taxes") {
     if (!input["Основание"] || !input["Дата"] || input["Начислено, сом"] === undefined || !Number.isFinite(Number(input["Начислено, сом"])) || num(input["Начислено, сом"]) < 0 || Object.keys(input).some((name) => !["Основание", "Дата", "Начислено, сом", "Оплачено, сом", "Комментарий", "Статья", "Партия"].includes(name))) throw new Error("Укажите основание, дату и начисление налога");
     if (!id && num(input["Оплачено, сом"]) > 0) throw new Error("Оплата налога записывается кнопкой «Оплатить»");
-    // an empty article is a tax; only an upcoming batch payment keeps a batch
-    if (Object.hasOwn(input, "Статья")) input = { ...input, "Статья": input["Статья"] === UPCOMING ? UPCOMING : "Налоги", ...(input["Статья"] !== UPCOMING ? { "Партия": null } : {}) };
+    // an empty article is a tax; a tax or an upcoming payment may name its batch
+    if (Object.hasOwn(input, "Статья")) input = { ...input, "Статья": input["Статья"] === UPCOMING ? UPCOMING : "Налоги" };
     if (num(input["Оплачено, сом"]) < 0 || num(input["Оплачено, сом"]) > num(input["Начислено, сом"]) + 0.005) throw new Error("Оплачено не может быть больше начисленного");
   }
   if (key === "reconciliations" && (!input["Партии в своде"] || !input["Дата свода"] || !Number.isFinite(Number(input["Факт остаток, $"])))) throw new Error("Укажите партии, дату и факт остаток сверки");
@@ -548,12 +548,32 @@ export async function receiveBatch(id: string) {
       try { await settleBatchPayments(id, true); }
       catch { throw new Error("Партия принята, но оплаты по ней не переведены в расчёт с поставщиком. Откройте и сохраните эти оплаты в кассе."); }
     }
+    try { await accrueOnReceipt(id, today); }
+    catch { throw new Error("Партия принята, но налог и предстоящая оплата за логистику не начислены. Внесите их в «Касса → Плановые расходы»."); }
     return movement.id;
   } catch (error) {
     if ((error as Error).message.startsWith("Партия принята")) throw error;
     try { await update("batches", id, writable("batches", { "Статус": batch["Статус"], "Дата прибытия": batch["Дата прибытия"] ? localDay(batch["Дата прибытия"]) : null })); }
     catch { throw new Error("Приход не создан, а статус партии не удалось восстановить. Проверьте партию вручную."); }
     throw error;
+  }
+}
+
+// On arrival the goods stand on stock at the sale price while the batch's taxes and logistics are not paid yet: book them
+// as planned expenses so the real balance does not jump — the tax (НДС и НсП of the batch) and the logistics still due
+// (China: delivery + extra logistics; РФ: logistics), less what was already paid for this batch. Never twice for a batch.
+async function accrueOnReceipt(batchId: string, day: string) {
+  const b = await readOne("batches", batchId, ["Партия", "Страна", "НДС и НсП", "Доставка, сом", "Выгрузка / логистика"]);
+  const own = (await readTable("taxes")).filter((t) => t["ПартияId"] === batchId);
+  const title = String(b["Партия"] ?? "");
+  const tax = Math.round(num(b["НДС и НсП"]) * 100) / 100;
+  if (tax > 0 && !own.some((t) => t["Статья"] !== UPCOMING)) {
+    await create("taxes", writable("taxes", { "Основание": `НДС и НсП · ${title}`, "Дата": day, "Начислено, сом": tax, "Статья": "Налоги", "Партия": batchId }));
+  }
+  const paid = (await readTable("payments")).filter((p) => p["ПартияId"] === batchId && p["Направление"] === "Расход" && ["Логистика", "Выгрузка"].includes(String(p["Категория"]))).reduce((s, p) => s + num(p["Сумма, сом"]), 0);
+  const logistics = Math.round((num(b["Доставка, сом"]) + num(b["Выгрузка / логистика"]) - paid) * 100) / 100;
+  if (logistics > 0 && !own.some((t) => t["Статья"] === UPCOMING)) {
+    await create("taxes", writable("taxes", { "Основание": `${b["Страна"] === "РФ" ? "Логистика" : "Доставка / логистика"} · ${title}`, "Дата": day, "Начислено, сом": logistics, "Статья": UPCOMING, "Партия": batchId }));
   }
 }
 
@@ -574,7 +594,12 @@ async function reopenBatchWithoutReceipt(batchId: unknown, exceptId: string) {
   if (b["Статус"] !== "На складе") return;
   await update("batches", String(batchId), writable("batches", { "Статус": "В пути", "Дата прибытия": null }));
   await settleBatchPayments(String(batchId), false);
+  // the accruals made on that receipt go with it while nothing was paid on them
+  for (const t of (await readTable("taxes")).filter((t) => t["ПартияId"] === batchId && num(t["Оплачено, сом"]) <= 0 && AUTO_ACCRUAL.test(String(t["Основание"] ?? "")))) {
+    await deleteRecordSafe("taxes", t.id);
+  }
 }
+const AUTO_ACCRUAL = /^(НДС и НсП|Доставка \/ логистика|Логистика) · /;
 
 /** What an upcoming batch payment can be paid as: batch costs, or the rest of the supplier's price still owed */
 const UPCOMING_CATEGORIES = ["Логистика", "Выгрузка", "Растаможка", "Оплата поставщику", "Комиссия банка", "Прочие расходы"];

@@ -518,14 +518,14 @@ export default function Workspace({ initial, user }: { initial: DataResult; user
       run((d) => ({ ...d, batches: d.batches.map((b) => b.id === batch.id ? { ...b, "Статус": "На складе", "Аванс поставщику (в пути), сом": 0 } : b) }), () => receiveBatch(batch.id), "Партия принята: использован уже внесённый приход", ["batches", "movements", "payments", "contacts"], false);
       return;
     }
-    run((d) => ({ ...d, batches: d.batches.map((b) => b.id === batch.id ? { ...b, "Статус": "На складе", "Дата прибытия": today(), "Аванс поставщику (в пути), сом": 0 } : b), products: d.products.map((p) => p.id === batch["ТоварId"] ? { ...p, "Остаток, кг": n(p["Остаток, кг"]) + kg, "Остаток, коробок": n(p["Остаток, коробок"]) + boxes, "Стоимость остатка, сом": n(p["Стоимость остатка, сом"]) + kg * cost } : p), movements: [temp({ "Дата": today(), "Тип": "Приход", "ТоварId": batch["ТоварId"], "ПартияId": batch.id, "Кг": kg, "Коробки": boxes, "Цена сом/кг": cost, "Цена плановая продажная, сом/кг": cost }), ...d.movements] }), () => receiveBatch(batch.id), "Партия принята на склад", ["batches", "products", "movements"], false);
+    run((d) => ({ ...d, batches: d.batches.map((b) => b.id === batch.id ? { ...b, "Статус": "На складе", "Дата прибытия": today(), "Аванс поставщику (в пути), сом": 0 } : b), products: d.products.map((p) => p.id === batch["ТоварId"] ? { ...p, "Остаток, кг": n(p["Остаток, кг"]) + kg, "Остаток, коробок": n(p["Остаток, коробок"]) + boxes, "Стоимость остатка, сом": n(p["Стоимость остатка, сом"]) + kg * cost } : p), movements: [temp({ "Дата": today(), "Тип": "Приход", "ТоварId": batch["ТоварId"], "ПартияId": batch.id, "Кг": kg, "Коробки": boxes, "Цена сом/кг": cost, "Цена плановая продажная, сом/кг": cost }), ...d.movements] }), () => receiveBatch(batch.id), "Партия принята на склад — налог и логистика добавлены в «Плановые расходы»", ["batches", "products", "movements", "taxes", "payments", "contacts"], false);
   }  // several products of one batch number arrive together: receive them one by one, then reload stock and movements
   function receiveGroup(group: Row[]) {
     const ready = group.filter((b) => ["В пути", "На таможне"].includes(text(b["Статус"])));
     const bad = ready.find((b) => n(b["Цена продажи сом/кг"]) <= 0);
     if (bad) { toast.error(`${text(bad["Партия"])}: укажите плановую цену продажи`); return; }
     const ids = new Set(ready.map((b) => b.id));
-    const keys: TableKey[] = ["batches", "products", "movements"];
+    const keys: TableKey[] = ["batches", "products", "movements", "taxes", "payments", "contacts"];
     run((d) => ({ ...d, batches: d.batches.map((b) => ids.has(b.id) ? { ...b, "Статус": "На складе", "Дата прибытия": today(), "Аванс поставщику (в пути), сом": 0 } : b) }), async () => {
       for (const b of ready) await receiveBatch(b.id);
       await refreshData(keys, () => loadTables(keys), false);

@@ -47,7 +47,7 @@ export const EDITORS: Record<EditKind, { table: TableKey; singular: string; crea
     { name: "Второй счёт", kind: "select", options: (data, form) => data.accounts.filter((a) => a.id !== form?.["Счёт"]).map((a) => ({ value: a.id, title: text(a["Название"]) })), when: isTransfer, label: (form) => form["Направление"] === "Приход" ? "Со счёта (там будет такой же расход)" : "На счёт (там будет такой же приход)" },
     { name: "Контрагент", kind: "select", options: contactsGrouped, when: (f) => !isTransfer(f) }, { name: "Партия", kind: "select", options: rows("batches", "Партия"), when: (f) => !isTransfer(f) }, { name: "В расчёт с контрагентом", kind: "checkbox", when: (f) => !isTransfer(f) }, { name: "Описание", kind: "textarea", wide: true }] },
   taxes: { table: "taxes", singular: "начисление налога", created: "Начисление сохранено", fields: [
-    { name: "Статья", kind: "select", options: list("Налоги", UPCOMING) }, { name: "Партия", kind: "select", options: rows("batches", "Партия"), when: (f) => f["Статья"] === UPCOMING },
+    { name: "Статья", kind: "select", options: list("Налоги", UPCOMING) }, { name: "Партия", kind: "select", options: rows("batches", "Партия") },
     { name: "Основание", kind: "text", required: true, wide: true }, { name: "Дата", kind: "date", required: true }, { name: "Начислено, сом", kind: "number", required: true }, { name: "Оплачено, сом", kind: "number" }, comment] },
   quotas: { table: "quotas", singular: "квота", created: "Квота сохранена", fields: [
     { name: "Квота", kind: "text", required: true }, { name: "Объём, кг", kind: "number", required: true }, { name: "Период", kind: "text" }, { name: "Дата", kind: "date" },
