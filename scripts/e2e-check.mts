@@ -76,6 +76,10 @@ try {
   b = find(d.batches, "id", batchId);
   const receipt = d.movements.find((m) => m["ПартияId"] === batchId && m["Тип"] === "Приход")!;
   console.log(`  статус: ${b["Статус"]}`);
+  // the receipt books the batch's tax (НДС и НсП) as a planned expense; it is test data too
+  const accrued = d.taxes.filter((t) => t["ПартияId"] === batchId);
+  for (const t of accrued) track("taxes", t.id);
+  check("Приёмка начислила налог партии (НДС и НсП)", accrued.filter((t) => t["Статья"] !== "Предстоящие оплаты по партиям").reduce((s, t) => s + n(t["Начислено, сом"]), 0), 8400);
   check("Приход кг", n(receipt["Кг"]), 1000);
   check("Приход коробок (кг / 10 кг в коробке)", n(receipt["Коробки"]), 100);
   check("Плановая цена прихода = цена продажи партии", n(receipt["Цена плановая продажная, сом/кг"]), 210);
@@ -165,11 +169,14 @@ try {
   for (const { table, id } of [...created].reverse()) {
     try { await safeDelete(table, id); console.log("  deleted", table, id); } catch (e) { failures++; console.error("  delete failed", table, id, e); }
   }
+  // Tablox recomputes stock rollups a few seconds after deletions: give it time before comparing with the baseline
+  await sleep(15000);
   const d = await data();
   const after = calculateSummary(d as never);
   console.log("AFTER: оборот", Math.round(after.turnover), "капитал", Math.round(after.capital), "реальный $", after.realUsd?.toFixed(2));
   check("Оборот вернулся к 30 171 862", Math.round(after.turnover), 30171862, 1);
   check("Капитал вернулся к 36 753 318", Math.round(after.capital), 36753318, 1);
+  check("Реальный остаток вернулся (налоги и предстоящие оплаты убраны)", Math.round((after.realUsd ?? 0) * 100), Math.round((before.realUsd ?? 0) * 100), 1);
   console.log(failures ? `\n${failures} FAILURE(S)` : "\nALL CHECKS PASSED");
   process.exit(failures ? 1 : 0);
 }
