@@ -92,6 +92,24 @@ export function buildDrill(key: DrillKey, data: Dataset, s: Summary, open: { con
   }
 }
 
+/** The drill over a period: every line with its value at the start, the change and the value at the end
+ *  (lines that were there only at the start are kept with 0 at the end). Accounts also show the money in and out. */
+export function periodDrill(end: Drill, start: Drill, period: { from: string; to: string; flows?: Map<string, { inflow: number; outflow: number }> }): Drill {
+  const groups = end.groups.map((g, i) => {
+    const before = new Map((start.groups[i]?.lines ?? []).map((l) => [l.key, l]));
+    const keys = new Set(g.lines.map((l) => l.key));
+    const gone = [...before.values()].filter((l) => !keys.has(l.key)).map((l): Line => ({ ...l, value: 0, cells: [l.cells[0]] }));
+    const lines = [...g.lines, ...gone].map((l): Line => {
+      const was = before.get(l.key)?.value ?? 0, flow = period.flows?.get(l.key);
+      return { ...l, cells: [l.cells[0], som(was, 2), ...(flow ? [som(flow.inflow, 2), som(-flow.outflow, 2)] : [signed(l.value - was)]), som(l.value, 2)] };
+    }).filter((l) => Math.abs(l.value) >= 0.005 || Math.abs(before.get(l.key)?.value ?? 0) >= 0.005);
+    return { ...g, columns: [g.columns[0], `На ${period.from}`, ...(period.flows ? ["Приходы", "Расходы"] : ["Изменение"]), `На ${period.to}`], lines };
+  });
+  const change = end.total - start.total;
+  return { ...end, groups, value: `${end.value} · ${signed(change)} за период`, formula: `${end.formula} Период: на ${period.from} было ${som(start.total, 2)}, изменение ${signed(change)}, на ${period.to} стало ${som(end.total, 2)}.` };
+}
+const signed = (value: number) => Math.abs(value) < 0.005 ? "0 сом" : `${value > 0 ? "+" : "−"}${som(Math.abs(value), 2)}`;
+
 export function SummaryDrill({ drill, onClose }: { drill: Drill | null; onClose: () => void }) {
   const [search, setSearch] = useState("");
   const q = search.toLocaleLowerCase("ru");

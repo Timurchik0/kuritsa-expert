@@ -144,7 +144,7 @@ export const localDay = (value: unknown) => value ? new Intl.DateTimeFormat("sv-
  * The dataset as it stood at the end of `day` (ГГГГ-ММ-ДД): every balance is rebuilt from its opening value plus the
  * operations dated up to that day — accounts from payments, counterparties from shipments and payments, stock from
  * movements, the supplier advance from cash payments of batches that had not arrived yet. Taxes accrued after the day
- * are left out; operations without a date count as old history. Same field names as the live data, so the summary, drill-downs and snapshots work unchanged.
+ * are left out, taxes paid after it are still owed; operations without a date count as old history. Same field names as the live data, so the summary, drill-downs and snapshots work unchanged.
  */
 export function datasetAsOf(data: Dataset, day: string): Dataset {
   // an operation without a date is old history (opening data): it belongs to every cut
@@ -180,6 +180,19 @@ export function datasetAsOf(data: Dataset, day: string): Dataset {
     const kg = sumBy(moves, "ТоварId", p.id, "Кг ±"), value = sumBy(moves, "ТоварId", p.id, "Склад ±, сом (по плановой цене)");
     return { ...p, "Остаток, кг": kg, "Остаток, коробок": sumBy(moves, "ТоварId", p.id, "Коробки ±"), "Склад по плановой цене, сом": value, "Стоимость остатка, сом": value, "Средняя плановая цена, сом/кг": kg > 0 ? value / kg : 0 };
   });
-  const taxes = data.taxes.map((t) => upTo(t) ? t : { ...t, "Остаток к уплате, сом": 0 });
+  // a tax paid after the day was still owed on it: «Оплачено» is a plain number, so the later payments are found by the
+  // first line of their description, which «Оплатить» writes as «Налог: <основание>» / «Предстоящая оплата: <основание>»
+  const paidLater = new Map<string, number>();
+  for (const p of data.payments) if (!upTo(p)) {
+    const m = /^(?:Налог|Предстоящая оплата): (.+)$/.exec(String(p["Описание"] ?? "").split("\n")[0].trim());
+    if (m) paidLater.set(m[1].trim(), (paidLater.get(m[1].trim()) ?? 0) + amount(p["Сумма"]));
+  }
+  const taxes = data.taxes.map((t) => {
+    if (!upTo(t)) return { ...t, "Остаток к уплате, сом": 0 };
+    const basis = String(t["Основание"] ?? "").trim(), back = Math.min(amount(t["Оплачено, сом"]), paidLater.get(basis) ?? 0);
+    if (back <= 0) return t;
+    paidLater.set(basis, (paidLater.get(basis) ?? 0) - back);
+    return { ...t, "Оплачено, сом": amount(t["Оплачено, сом"]) - back, "Остаток к уплате, сом": amount(t["Остаток к уплате, сом"]) + back };
+  });
   return { ...data, accounts, contacts, products, batches, taxes, movements: moves, payments: pays };
 }
